@@ -1,0 +1,177 @@
+﻿  IBFV.cpp
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(20,12): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(21,12): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(23,11): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(29,19): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(30,15): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(112,13): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(113,13): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(116,22): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(116,18): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(175,21): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(175,17): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(238,13): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(239,13): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(242,22): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(242,18): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(300,21): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(300,17): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(344,54): warning C4244: '=': conversion from 'float' to 'GLubyte', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(345,54): warning C4244: '=': conversion from 'float' to 'GLubyte', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(346,54): warning C4244: '=': conversion from 'float' to 'GLubyte', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(334,12): warning C4101: 't': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(374,12): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(377,22): warning C4244: '=': conversion from 'float' to 'GLubyte', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(378,22): warning C4244: '=': conversion from 'float' to 'GLubyte', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(379,22): warning C4244: '=': conversion from 'float' to 'GLubyte', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(415,19): warning C4244: '=': conversion from 'float' to 'GLubyte', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(416,19): warning C4244: '=': conversion from 'float' to 'GLubyte', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\IBFV.cpp(417,19): warning C4244: '=': conversion from 'float' to 'GLubyte', possible loss of data
+  learnply.cpp
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(36,28): warning C4305: 'initializing': truncation from 'double' to 'float'
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(89,20): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(134,50): warning C4305: 'initializing': truncation from 'double' to 'GLfloat'
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(135,50): warning C4305: 'initializing': truncation from 'double' to 'GLfloat'
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(167,26): warning C4305: '=': truncation from 'double' to 'GLfloat'
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(179,44): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(179,28): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(194,55): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(194,35): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(194,15): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(195,63): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(195,39): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(195,15): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(240,16): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(287,16): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(343,45): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(343,34): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(343,23): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(369,15): warning C4101: 'i': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(370,10): warning C4101: 'mat_diffuse': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(431,44): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(431,33): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(431,22): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(447,6): warning C4101: 'i': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(592,28): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(593,44): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(641,12): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(642,12): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(810,16): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(863,43): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(863,32): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\learnply.cpp(863,21): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+  ply.cpp
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(175,18): warning C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(214,3): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(217,7): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(221,8): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(207,15): warning C4101: 'elem': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(205,7): warning C4101: 'i': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(350,7): warning C4101: 'i': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(352,16): warning C4101: 'prop': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(476,7): warning C4101: 'i': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(672,31): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(707,16): warning C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(747,3): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(750,7): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(754,8): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(1080,17): warning C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(1206,22): warning C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(1321,7): warning C4101: 'i': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(1358,5): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(1360,7): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(1528,8): warning C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(1427,7): warning C4101: 'i': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(1562,7): warning C4101: 'i': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(1714,9): warning C4101: 'j': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(1714,7): warning C4101: 'i': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(1926,19): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2035,18): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2036,19): warning C4244: '=': conversion from 'double' to 'unsigned int', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2040,18): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2041,19): warning C4244: '=': conversion from 'double' to 'unsigned int', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2117,18): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2118,19): warning C4244: '=': conversion from 'double' to 'unsigned int', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2123,18): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2124,19): warning C4244: '=': conversion from 'double' to 'unsigned int', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2242,17): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2270,16): warning C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2339,18): warning C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2345,18): warning C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2350,18): warning C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2328,7): warning C4101: 'count_type': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2327,7): warning C4101: 'prop_type': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2417,16): warning C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2531,16): warning C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2557,38): warning C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2597,38): warning C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2776,7): warning C4101: 'i': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(2778,16): warning C4101: 'prop': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(3061,7): warning C4101: 'count': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(3060,7): warning C4101: 'i': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\ply.cpp(3270,9): warning C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+  polyhedron.cpp
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\polyhedron.cpp(185,2): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\polyhedron.cpp(766,16): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\polyhedron.cpp(810,16): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\polyhedron.cpp(821,111): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\polyhedron.cpp(835,16): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\polyhedron.cpp(844,17): warning C4018: '<': signed/unsigned mismatch
+  Polyline.cpp
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\Polyline.cpp(62,23): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\Polyline.cpp(63,85): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\Polyline.cpp(63,60): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\Polyline.cpp(63,35): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\Polyline.cpp(234,26): warning C4018: '<': signed/unsigned mismatch
+  ppm.cpp
+  Project1.cpp
+  Project2.cpp
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\Project2.cpp(34,13): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\Project2.cpp(58,13): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\Project2.cpp(82,13): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\Project2.cpp(106,13): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\Project2.cpp(174,8): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+  tmatrix.cpp
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\tmatrix.cpp(165,15): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\tmatrix.cpp(166,15): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\tmatrix.cpp(167,15): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\tmatrix.cpp(168,15): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+  trackball.cpp
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(109,14): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(110,14): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(111,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(124,14): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(125,14): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(126,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(175,13): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(187,19): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(233,23): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(354,28): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(406,65): warning C4305: 'argument': truncation from 'double' to 'float'
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(407,65): warning C4305: 'argument': truncation from 'double' to 'float'
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(418,22): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(424,12): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(437,19): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(438,12): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(450,10): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(452,10): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(455,9): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(478,6): warning C4101: 'i': unreferenced local variable
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(536,16): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(537,16): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(538,16): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(541,16): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(542,16): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(543,16): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(546,16): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(547,16): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\trackball.cpp(548,16): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+  VectorFieldTopology.cpp
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\VectorFieldTopology.cpp(228,10): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\VectorFieldTopology.cpp(506,45): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\VectorFieldTopology.cpp(506,33): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+C:\Users\Grace\Desktop\HONORS THESIS\learnply\VectorFieldTopology.cpp(506,21): warning C4244: 'argument': conversion from 'double' to 'GLfloat', possible loss of data
+  Generating Code...
+IBFV.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/INCREMENTAL:NO' specification
+  learnply.vcxproj -> C:\Users\Grace\Desktop\HONORS THESIS\Debug\learnply.exe
+  0 File(s) copied
