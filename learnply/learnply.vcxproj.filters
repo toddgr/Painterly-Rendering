@@ -13,12 +13,6 @@
       <UniqueIdentifier>{75be1ad1-d5fd-43e9-a89e-9afca313fda0}</UniqueIdentifier>
       <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
     </Filter>
-    <Filter Include="Project1">
-      <UniqueIdentifier>{a5bf1ad7-358d-438c-8481-1441b84f071e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Project2">
-      <UniqueIdentifier>{f9a8960f-b15d-4749-bb81-b97bfb60f35a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Polyline">
       <UniqueIdentifier>{75c8baf3-3d02-438d-bc4b-e66b39121005}</UniqueIdentifier>
     </Filter>
@@ -41,12 +35,6 @@
     </ClCompile>
     <ClCompile Include="learnply.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Project1.cpp">
-      <Filter>Project1</Filter>
-    </ClCompile>
-    <ClCompile Include="Project2.cpp">
-      <Filter>Project2</Filter>
     </ClCompile>
     <ClCompile Include="Polyline.cpp">
       <Filter>Polyline</Filter>
@@ -86,12 +74,6 @@
     <ClInclude Include="glError.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Project1.h">
-      <Filter>Project1</Filter>
-    </ClInclude>
-    <ClInclude Include="Project2.h">
-      <Filter>Project2</Filter>
-    </ClInclude>
     <ClInclude Include="Polyline.h">
       <Filter>Polyline</Filter>
     </ClInclude>
@@ -106,13 +88,10 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\..\..\Downloads\toddgr_project2.pdf">
-      <Filter>Project2</Filter>
-    </None>
-    <None Include="README.md">
-      <Filter>Project2</Filter>
-    </None>
     <None Include="..\data\image\Lenna.ppm">
+      <Filter>Image</Filter>
+    </None>
+    <None Include="..\data\image\red-blue.ppm">
       <Filter>Image</Filter>
     </None>
   </ItemGroup>

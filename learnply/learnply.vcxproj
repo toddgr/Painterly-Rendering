@@ -17,13 +17,13 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -141,8 +141,6 @@
     <ClCompile Include="polyhedron.cpp" />
     <ClCompile Include="Polyline.cpp" />
     <ClCompile Include="ppm.cpp" />
-    <ClCompile Include="Project1.cpp" />
-    <ClCompile Include="Project2.cpp" />
     <ClCompile Include="tmatrix.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
       <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">EnableFastChecks</BasicRuntimeChecks>
@@ -165,16 +163,13 @@
     <ClInclude Include="polyhedron.h" />
     <ClInclude Include="Polyline.h" />
     <ClInclude Include="ppm.h" />
-    <ClInclude Include="Project1.h" />
-    <ClInclude Include="Project2.h" />
     <ClInclude Include="tmatrix.h" />
     <ClInclude Include="trackball.h" />
     <ClInclude Include="VectorFieldTopology.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\..\..\Downloads\toddgr_project2.pdf" />
     <None Include="..\data\image\Lenna.ppm" />
-    <None Include="README.md" />
+    <None Include="..\data\image\red-blue.ppm" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

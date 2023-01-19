@@ -18,8 +18,6 @@
 #include "Polyline.h"
 #include "IBFV.h"
 #include <iostream>
-#include "Project1.h"
-#include "Project2.h"
 
 Polyhedron* poly;
 std::vector<POLYLINE> polylines;
@@ -86,7 +84,7 @@ Main program.
 int main(int argc, char* argv[])
 {
 	/*load mesh from ply file v1 - v3 - v4 - v6 - v8 - v9 - v10*/
-	FILE* this_file = fopen("../data/vector_data/v10.ply", "r");
+	FILE* this_file = fopen("../data/vector_data/v1.ply", "r");
 	poly = new Polyhedron(this_file);
 	fclose(this_file);
 
@@ -480,7 +478,6 @@ void keyboard(unsigned char key, int x, int y) {
 			}
 		}
 		glutPostRedisplay();
-		break;
 	}
 	break;
 
@@ -492,7 +489,7 @@ void keyboard(unsigned char key, int x, int y) {
 			//polylines.push_back(line);
 			for (int i = -10; i < 10; i++) {
 				line.m_vertices.clear();
-				streamline(line, icVector3(i * 1.0, 0, 0), 0.005); // d2 was 0.001 but was taking too long to render
+				streamline(line, icVector3(i * 1.0, 0, 0), 0.001); // d2 was 0.001 but was taking too long to render
 				line.m_rgb = icVector3(0.0, 1.0, 0.0);
 				polylines.push_back(line);
 			}
@@ -516,12 +513,12 @@ void keyboard(unsigned char key, int x, int y) {
 	}break;
 	case '7': {
 		display_mode = 5;
-		makePatternsImg("../data/image/spongebob.ppm");
+		makePatternsImg("../data/image/red-blue.ppm");
 		glutPostRedisplay();
 	}break;
 	case '8': {
 		display_mode = 5;
-		makePatternsImgEdges("../data/image/spongebob.ppm");
+		makePatternsImgEdges("../data/image/red-blue.ppm");
 		glutPostRedisplay();
 	}break;
 	case '9': { //excercise 3.1
