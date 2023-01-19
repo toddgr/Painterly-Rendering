@@ -1,0 +1,14 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/learnply/.vs/learnply
+/Debug/learnply.tlog/CL.command.1.tlog
+/Debug/learnply.tlog/CL.read.1.tlog
+/Debug/learnply.tlog/link.write.1.tlog
+/Debug/learnply.tlog/link.read.1.tlog
+/Debug/learnply.tlog/link.command.1.tlog
+/Debug/learnply.tlog/learnply.lastbuildstate
+/Debug/learnply.tlog/CL.write.1.tlog
+/Debug

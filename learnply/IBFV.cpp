@@ -7,7 +7,7 @@
 #include "ppm.h"
 
 extern Polyhedron* poly;
-#define NPN	256 //64
+#define NPN	64 //64
 #define SCALE	4.0
 #define ALPHA	8
 
@@ -281,7 +281,6 @@ void display_IBFV() {
 
 	glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 
-	// line 173:
 	// draw the mesh using pixels without advecting texture coords
 	glClearColor(1.0, 1.0, 1.0, 1.0); // background for rendering color coding and lighting
 
