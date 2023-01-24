@@ -315,50 +315,6 @@ void extractSingularity() { // verified
 	}
 }
 
-
-void classifySingularityByWinding() {  // Verified
-	for (auto& s : singularities) {
-		//
-		icVector3 posn = s.p;
-		Quad* quad = findQuad(posn);
-		//winding number
-		double winding_angle = 0;
-		double angles[4];
-		for (int i = 0; i < 4; i++) {
-			auto vi = quad->verts[i]->vec;
-			double angle = atan2(vi.entry[1], vi.entry[0]);
-			if (angle < 0) {
-				angle += 2 * M_PI;
-			}
-			angles[i] = angle;
-		}
-		for (int i = 0; i < 4; i++) {
-			int next_i = i + 1;
-			if (next_i > 3) next_i = 0;
-			double diff = (angles[next_i] - angles[i]);
-			if (diff < -M_PI)
-				diff += 2 * M_PI;
-			if (diff > M_PI)
-				diff -= 2 * M_PI;
-			winding_angle += diff;
-		}
-		if (std::abs(winding_angle) < EPSILON) {
-			// is 0, non singularity
-			s.type = -1;
-		}
-		else if (winding_angle < 0) {
-			// is saddle
-			s.type = 2;
-			s.rgb = icVector3(0.0, 1.0, 0.0);
-		}
-		else if (winding_angle > 0) {
-			// source sink center, focus
-			s.type = 0;
-			s.rgb = icVector3(1.0, 0.0, 0.0);
-		}
-	}
-}
-
 void classifySingularity() {
 	for (auto& s : singularities) {
 

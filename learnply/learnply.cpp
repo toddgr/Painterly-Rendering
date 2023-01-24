@@ -18,8 +18,6 @@
 #include "Polyline.h"
 #include "IBFV.h"
 #include <iostream>
-#include "Project1.h"
-#include "Project2.h"
 
 Polyhedron* poly;
 std::vector<POLYLINE> polylines;
@@ -86,7 +84,7 @@ Main program.
 int main(int argc, char* argv[])
 {
 	/*load mesh from ply file v1 - v3 - v4 - v6 - v8 - v9 - v10*/
-	FILE* this_file = fopen("../data/vector_data/v10.ply", "r");
+	FILE* this_file = fopen("../data/vector_data/v1.ply", "r");
 	poly = new Polyhedron(this_file);
 	fclose(this_file);
 
@@ -480,51 +478,54 @@ void keyboard(unsigned char key, int x, int y) {
 			}
 		}
 		glutPostRedisplay();
-		break;
 	}
 	break;
 
-	case '4':
+	case '4': { // Generate streamlines
 		display_mode = 1;
-		{
-			POLYLINE line;
-			//streamlineFB(line, icVector3(2, 2, 0), 0.01);
-			//polylines.push_back(line);
-			for (int i = -10; i < 10; i++) {
-				line.m_vertices.clear();
-				streamline(line, icVector3(i * 1.0, 0, 0), 0.005); // d2 was 0.001 but was taking too long to render
-				line.m_rgb = icVector3(0.0, 1.0, 0.0);
-				polylines.push_back(line);
-			}
-		}
-		glutPostRedisplay();
-		break;
 
-	case '5': {
+		POLYLINE line;
+		//streamlineFB(line, icVector3(2, 2, 0), 0.01);
+		//polylines.push_back(line);
+		for (int i = -10; i < 10; i++) {
+			line.m_vertices.clear();
+			streamline(line, icVector3(i * 1.0, 0, 0), 0.005); // d2 was 0.001 but was taking too long to render. The smaller the number, the finer the streamlines
+			line.m_rgb = icVector3(0.0, 1.0, 0.0);
+			polylines.push_back(line);
+		}
+
+		glutPostRedisplay();
+	} break;
+
+	case '5': {	// Generate sigularities with streamlines
 		display_mode = 1;
 		extractSingularity();
 		classifySingularity();
-		//classifySingularityByWinding();
 		extractSeparatrix();
 		glutPostRedisplay();
-	}
-			break;
-	case '6': {
+	} break;
+
+	case '6': { // Generate IBFV with noise
 		display_mode = 5;
 		initIBFV();
 		glutPostRedisplay();
-	}break;
-	case '7': {
+	} break;
+
+	case '7': { // Generate IBFV with image
 		display_mode = 5;
-		makePatternsImg("../data/image/spongebob.ppm");
+		initIBFV();
+		makePatternsImg("../data/image/red-blue.ppm");
 		glutPostRedisplay();
-	}break;
-	case '8': {
+	} break;
+
+	case '8': { // Generate IBFV with edge field and image
 		display_mode = 5;
-		makePatternsImgEdges("../data/image/spongebob.ppm");
+		initIBFV();
+		makePatternsImgEdges("../data/image/red-blue.ppm");
 		glutPostRedisplay();
-	}break;
-	case '9': { //excercise 3.1
+	} break;
+
+	case '9': { // Generate IBFV and singularities
 		display_mode = 5;
 		initIBFV();
 		extractSingularity();
@@ -532,7 +533,7 @@ void keyboard(unsigned char key, int x, int y) {
 		glutPostRedisplay();
 
 	} break;
-	case 't': { //exercise 3.2
+	case 't': { // Generate streamlines, singularities, and then more streamlines
 		display_mode = 1;
 		
 		POLYLINE line;
@@ -559,13 +560,13 @@ void keyboard(unsigned char key, int x, int y) {
 	
 		glutPostRedisplay();
 	}	break;
-	case 'o': {
+	case 'o': { // Change original image to true/false
 		display_mode = 5;
 		original_image = !original_image;
 		std::cout << "original_image:" << original_image << std::endl;
 		glutPostRedisplay();
 	}break;
-	case 'p': {
+	case 'p': { // Change flow image to true/false
 		display_mode = 5;
 		flow_image = !flow_image;
 		std::cout << "flow_image:" << flow_image << std::endl;
@@ -865,8 +866,8 @@ void display_polyhedron(Polyhedron* poly)
 			}
 			glEnd();
 			break;
-		case 5:
-			displayIBFV();
+		case 5:	// IBFV
+			display_IBFV();
 			break;
 		}
 	}

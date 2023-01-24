@@ -29,7 +29,6 @@ struct Singularity {  // Verified
 void display_singularities();
 void extractSingularity();
 void classifySingularity();
-void classifySingularityByWinding();
 void extractSeparatrix();
 
 bool sinp2Boundary(icVector3& currPos, const icVector3& min, const icVector3& max);
