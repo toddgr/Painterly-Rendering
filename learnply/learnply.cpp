@@ -88,11 +88,8 @@ int main(int argc, char* argv[])
 	poly = new Polyhedron(this_file);
 	fclose(this_file);
 
-	/* Call Project functions here or in keyboard */
-	// project1();  // Press 'q' for functions instead
-
 	/*initialize the mesh*/
-	poly->initialize(); // initialize the mesh
+	poly->initialize();
 	poly->write_info();
 
 
@@ -101,7 +98,7 @@ int main(int argc, char* argv[])
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutInitWindowPosition(20, 20);
 	glutInitWindowSize(win_width, win_height);
-	glutCreateWindow("Scientific Visualization");
+	glutCreateWindow("Sobel filter");
 
 
 	/*initialize openGL*/
@@ -174,7 +171,8 @@ Update the scene
 
 void set_scene(GLenum mode, Polyhedron* poly)
 {
-	glTranslatef(translation[0], translation[1], -3.0);
+	// Commented out translations and scaling to ensure the polyhedron takes up exactly the size of the window.
+	//glTranslatef(translation[0], translation[1], -3.0);
 
 	/*multiply rotmat to current mat*/
 	{
@@ -189,8 +187,8 @@ void set_scene(GLenum mode, Polyhedron* poly)
 		glMultMatrixf(mat);
 	}
 
-	glScalef(0.9 / poly->radius, 0.9 / poly->radius, 0.9 / poly->radius);
-	glTranslatef(-poly->center.entry[0], -poly->center.entry[1], -poly->center.entry[2]);
+	//glScalef(0.9 / poly->radius, 0.9 / poly->radius, 0.9 / poly->radius);
+	//glTranslatef(-poly->center.entry[0], -poly->center.entry[1], -poly->center.entry[2]);
 }
 
 
@@ -455,7 +453,7 @@ void keyboard(unsigned char key, int x, int y) {
 	{
 		display_mode = 6;
 		initIBFV();
-		sobelFilter("../data/image/panic.ppm");
+		sobelFilter("../data/image/nothisispatrick.ppm");
 		glutPostRedisplay();
 	}
 

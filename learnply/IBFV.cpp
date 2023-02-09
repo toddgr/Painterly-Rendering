@@ -17,7 +17,7 @@ extern int win_width;
 extern int win_height;
 extern unsigned char* pixels;
 
-float tmax = win_width / (SCALE * NPN);
+float tmax = win_width; // / (SCALE * NPN);
 float dmax = SCALE / win_width;
 
 int alpha = (255 * 0.2);
@@ -232,7 +232,7 @@ void displaySobel() {
 	glPushMatrix();
 	glLoadIdentity();
 
-	glTranslatef(-1.0, -1.0, 0.0);
+	glTranslatef(-1., -1., 0.);
 	glScalef(2.0, 2.0, 1.0);
 
 	glCallList(1);
