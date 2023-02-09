@@ -451,6 +451,16 @@ void keyboard(unsigned char key, int x, int y) {
 		exit(0);
 		break;
 
+	case 's':  // Sobel filter implementation
+	{
+		display_mode = 6;
+		initIBFV();
+		sobelFilter("../data/image/panic.ppm");
+		glutPostRedisplay();
+	}
+
+
+	// EXCESS KEY COMMANDS
 	case '1':
 		display_mode = 1;
 		glutPostRedisplay();
@@ -521,7 +531,7 @@ void keyboard(unsigned char key, int x, int y) {
 	case '8': { // Generate IBFV with edge field and image
 		display_mode = 6;
 		initIBFV();
-		sobelFilter("../data/image/spongebob.ppm");
+		sobelFilter("../data/image/panic.ppm");
 		glutPostRedisplay();
 	} break;
 
