@@ -208,7 +208,8 @@ void displaySobel() {
 	glShadeModel(GL_FLAT);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	glClearColor(0.5, 0.5, 0.5, 1.0);  // background for rendering color coding and lighting
+	// background for rendering color coding and lighting. If not an edge, pixel will be black.
+	glClearColor(0., 0., 0., 1.0);  
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// draw the mesh using pixels and use vector field to advect texture coordinates
@@ -253,8 +254,9 @@ void displaySobel() {
 
 	glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 
-	// draw the mesh using pixels without advecting texture coords
-	glClearColor(1.0, 1.0, 1.0, 1.0);  // background for rendering color coding and lighting
+	// background for rendering color coding and lighting. Anything that is not the image will be white.
+	// Not related to edge display.
+	glClearColor(1.0, 1.0, 1.0, 1.0); 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, win_width, win_height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 	for (int i = 0; i < poly->nquads; i++)
