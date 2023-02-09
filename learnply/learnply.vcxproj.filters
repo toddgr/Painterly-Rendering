@@ -48,6 +48,9 @@
     <ClCompile Include="ppm.cpp">
       <Filter>Image</Filter>
     </ClCompile>
+    <ClCompile Include="Sobel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="icMatrix.H">
@@ -85,6 +88,9 @@
     </ClInclude>
     <ClInclude Include="ppm.h">
       <Filter>Image</Filter>
+    </ClInclude>
+    <ClInclude Include="Sobel.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

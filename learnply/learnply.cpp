@@ -19,6 +19,8 @@
 #include "IBFV.h"
 #include <iostream>
 
+#include "Sobel.h"
+
 Polyhedron* poly;
 std::vector<POLYLINE> polylines;
 std::list<Singularity> singularities;
@@ -452,8 +454,8 @@ void keyboard(unsigned char key, int x, int y) {
 	case 's':  // Sobel filter implementation
 	{
 		display_mode = 6;
-		initIBFV();
-		sobelFilter("../data/image/nothisispatrick.ppm");
+		initSobel();
+		sobelFilter("../data/image/panic.ppm");
 		glutPostRedisplay();
 	}
 
@@ -765,13 +767,6 @@ void display_polyhedron(Polyhedron* poly)
 				}
 				glEnd();
 			}
-		}
-		break;
-
-		case 5:	// IBFV vector field display
-		{
-			displayIBFV();
-			glutPostRedisplay();
 		}
 		break;
 
