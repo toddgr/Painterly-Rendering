@@ -22,7 +22,8 @@ float dmax = SCALE / win_width;
 
 int alpha = (255 * 0.2);
 
-void initIBFV() { // verified
+void initIBFV()
+{
 	pixels = (unsigned char*)malloc(sizeof(unsigned char) * win_width * win_height * 3);
 	memset(pixels, 255, sizeof(unsigned char) * win_width * win_height * 3);
 
@@ -32,16 +33,16 @@ void initIBFV() { // verified
 	int lut[256];
 	int phase[NPN][NPN];
 	GLubyte pat[NPN][NPN][4];
-	int i, j;
+	int i, j, k;
 
-	for (i = 0; i < 256; i++)
-		lut[i] = i < 127 ? 0 : 255;
+	for (i = 0; i < 256; i++) lut[i] = i < 127 ? 0 : 255;
 	for (i = 0; i < NPN; i++)
-		for (j = 0; j < NPN; j++)
-			phase[i][j] = rand() % 256;
+		for (j = 0; j < NPN; j++) phase[i][j] = rand() % 256;
 
-	for (i = 0; i < NPN; i++) {
-		for (j = 0; j < NPN; j++) {
+	for (i = 0; i < NPN; i++)
+	{
+		for (j = 0; j < NPN; j++)
+		{
 			pat[i][j][0] =
 				pat[i][j][1] =
 				pat[i][j][2] = lut[(phase[i][j]) % 255];
@@ -83,19 +84,21 @@ void displayIBFV()
 	glGetDoublev(GL_PROJECTION_MATRIX, projection_matrix);
 	glGetIntegerv(GL_VIEWPORT, viewport);
 
-	for (int i = 0; i < poly->nquads; i++) { 
+	for (int i = 0; i < poly->nquads; i++)
+	{
 		Quad* qtemp = poly->qlist[i];
 
 		glBegin(GL_QUADS);
-		for (int j = 0; j < 4; j++) {
+		for (int j = 0; j < 4; j++)
+		{
 			Vertex* vtemp = qtemp->verts[j];
 
-			double tx, ty, dummy;
+			double tx, ty, tx1, ty1, dummy;
 			gluProject((GLdouble)vtemp->x, (GLdouble)vtemp->y, (GLdouble)vtemp->z,
 				modelview_matrix, projection_matrix, viewport, &tx, &ty, &dummy);
 
-			tx = tx / win_width;
-			ty = ty / win_height;
+			tx1 = tx / win_width;
+			ty1 = ty / win_height;
 
 			icVector2 dp;
 			if (flow_image) {
@@ -109,11 +112,15 @@ void displayIBFV()
 				dp *= dmax;
 			}
 
-			float px = tx + dp.x;
-			float py = ty + dp.y;
+			double dx = -dp.x;
+			double dy = -dp.y;
+
+			float px = tx1 + dx;
+			float py = ty1 + dy;
+
 			glTexCoord2f(px, py);
-			if (original_image) {
-				glTexCoord2f(tx, ty);
+			if (original_image) { // Something is wrong with this code here, 
+				glTexCoord2f(tx, ty);	// or at least how the original_image bool is handled.
 			}
 			else {
 				glTexCoord2f(px, py);
@@ -122,6 +129,96 @@ void displayIBFV()
 		}
 		glEnd();
 	}
+
+	glEnable(GL_BLEND);
+
+	// blend in noise pattern
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+
+	glTranslatef(-1.0, -1.0, 0.0);
+	glScalef(2.0, 2.0, 1.0);
+
+	glCallList(1);
+
+	glBegin(GL_QUAD_STRIP);
+
+	glTexCoord2f(0.0, 0.0);  glVertex2f(0.0, 0.0);
+	glTexCoord2f(0.0, tmax); glVertex2f(0.0, 1.0);
+	glTexCoord2f(tmax, 0.0);  glVertex2f(1.0, 0.0);
+	glTexCoord2f(tmax, tmax); glVertex2f(1.0, 1.0);
+	glEnd();
+	glDisable(GL_BLEND);
+
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
+
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+
+	glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+
+	// draw the mesh using pixels without advecting texture coords
+	glClearColor(1.0, 1.0, 1.0, 1.0);  // background for rendering color coding and lighting
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, win_width, win_height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+	for (int i = 0; i < poly->nquads; i++)
+	{
+		Quad* qtemp = poly->qlist[i];
+		glBegin(GL_QUADS);
+		for (int j = 0; j < 4; j++)
+		{
+			Vertex* vtemp = qtemp->verts[j];
+			double tx, ty, dummy;
+			gluProject((GLdouble)vtemp->x, (GLdouble)vtemp->y, (GLdouble)vtemp->z,
+				modelview_matrix, projection_matrix, viewport, &tx, &ty, &dummy);
+			tx = tx / win_width;
+			ty = ty / win_height;
+			glTexCoord2f(tx, ty);
+			glVertex3d(vtemp->x, vtemp->y, vtemp->z);
+		}
+		glEnd();
+	}
+	glDisable(GL_TEXTURE_2D);
+	glDisable(GL_BLEND);
+	glShadeModel(GL_SMOOTH);
+}
+
+void displaySobel() {
+	// Can we display *just* the Sobel filter without needing to toggle IBFV?
+	// Perhaps that is the complication here.
+
+	glDisable(GL_LIGHTING);
+	glDisable(GL_LIGHT0);
+	glDisable(GL_LIGHT1);
+	glDisable(GL_BLEND);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+
+	glEnable(GL_TEXTURE_2D);
+	glShadeModel(GL_FLAT);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glClearColor(0.5, 0.5, 0.5, 1.0);  // background for rendering color coding and lighting
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// draw the mesh using pixels and use vector field to advect texture coordinates
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, win_width, win_height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+
+	double modelview_matrix[16], projection_matrix[16];
+	int viewport[4];
+	glGetDoublev(GL_MODELVIEW_MATRIX, modelview_matrix);
+	glGetDoublev(GL_PROJECTION_MATRIX, projection_matrix);
+	glGetIntegerv(GL_VIEWPORT, viewport);
 
 	glEnable(GL_BLEND);
 
@@ -356,7 +453,7 @@ void makePatternsImgNoise(const std::string& fname, float w) {
 	glEndList();
 }
 
-void makePatternsImgEdges(const std::string& fname) {
+void sobelFilter(const std::string& fname) {
 
 	float kernelx[3][3] = {
 		{-1, 0, 1},
@@ -369,24 +466,26 @@ void makePatternsImgEdges(const std::string& fname) {
 		{1, 2, 1} };
 
 	ppm img(fname);
-	GLubyte pat[NPN][NPN][4];
-	GLubyte pat0[NPN][NPN][4];
+	GLubyte pat[NPN][NPN][4];	// image before filter is applied - intensity
+	GLubyte pat0[NPN][NPN][4];	// image after filter is applied - edge field?
+
 	int i, j;
-	for (i = 0; i < NPN; i++) {
-		for (j = 0; j < NPN; j++) {
-			float c = 0.299 * img.r[(NPN - i - 1) * NPN + j] / 255 +
-				0.587 * img.g[(NPN - i - 1) * NPN + j] / 255 +
-				0.114 * img.b[(NPN - i - 1) * NPN + j] / 255;
-			pat0[i][j][0] = c * 255;
-			pat0[i][j][1] = c * 255;
-			pat0[i][j][2] = c * 255;
+	for (i = 0; i < NPN; i++) {		// rows
+		for (j = 0; j < NPN; j++) { // columns
+			float c = 0.299 * img.r[(NPN - i - 1) * NPN + j] +
+				0.587 * img.g[(NPN - i - 1) * NPN + j] +
+				0.114 * img.b[(NPN - i - 1) * NPN + j];
+			pat0[i][j][0] = c;
+			pat0[i][j][1] = c;
+			pat0[i][j][2] = c;
 			pat0[i][j][3] = alpha;
 		}
 	}
+
 	//filter
-	for (i = 1; i < NPN - 1; i++) {
-		for (j = 1; j < NPN - 1; j++) {
-			float mag0x = 0.0;
+	for (i = 1; i < NPN - 1; i++) {		// row
+		for (j = 1; j < NPN - 1; j++) {	// column
+			float mag0x = 0.0;		
 			float mag1x = 0.0;
 			float mag2x = 0.0;
 			float mag0y = 0.0;
@@ -404,6 +503,7 @@ void makePatternsImgEdges(const std::string& fname) {
 					mag2y += pat0[i - 1 + a][j - 1 + b][2] * kernely[a][b];
 				}
 			}
+
 			float v0 = std::sqrt(mag0x * mag0x + mag0y * mag0y);
 			float v1 = std::sqrt(mag1x * mag1x + mag1y * mag1y);
 			float v2 = std::sqrt(mag2x * mag2x + mag2y * mag2y);

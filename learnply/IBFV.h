@@ -5,6 +5,7 @@
 void initIBFV();
 void display_IBFV();
 void displayIBFV();
+void displaySobel();
 void makePatternsImg(const std::string& fname);
 void makePatternsImgNoise(const std::string& fname, float w);
-void makePatternsImgEdges(const std::string& fname);
+void sobelFilter(const std::string& fname);

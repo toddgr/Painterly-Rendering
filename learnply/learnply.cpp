@@ -27,7 +27,7 @@ std::list<Singularity> singularities;
 //std::vector<Vertex> minCritPoints;
 //std::vector<Vertex> saddleCritPoints;
 unsigned char* pixels;
-bool original_image = false;
+bool original_image = true;
 bool flow_image = false;
 
 /*scene related variables*/
@@ -84,7 +84,7 @@ Main program.
 int main(int argc, char* argv[])
 {
 	/*load mesh from ply file v1 - v3 - v4 - v6 - v8 - v9 - v10*/
-	FILE* this_file = fopen("../data/vector_data/v1.ply", "r");
+	FILE* this_file = fopen("../data/scalar_data/r2.ply", "r");
 	poly = new Polyhedron(this_file);
 	fclose(this_file);
 
@@ -514,14 +514,14 @@ void keyboard(unsigned char key, int x, int y) {
 	case '7': { // Generate IBFV with image
 		display_mode = 5;
 		initIBFV();
-		makePatternsImg("../data/image/red-blue.ppm");
+		makePatternsImg("../data/image/spongebob.ppm");
 		glutPostRedisplay();
 	} break;
 
 	case '8': { // Generate IBFV with edge field and image
-		display_mode = 5;
+		display_mode = 6;
 		initIBFV();
-		makePatternsImgEdges("../data/image/red-blue.ppm");
+		sobelFilter("../data/image/spongebob.ppm");
 		glutPostRedisplay();
 	} break;
 
@@ -812,63 +812,90 @@ void display_polyhedron(Polyhedron* poly)
 
 		Quad* temp_q = poly->qlist[i];
 
-		switch (display_mode) {
-		case 1:
+		switch (display_mode)
+		{
+		case 1:	// solid color display with lighting
 		{
 			glEnable(GL_LIGHTING);
 			glEnable(GL_LIGHT0);
 			glEnable(GL_LIGHT1);
 
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-			GLfloat mat_diffuse[4] = { 0., 0.5, 0.5, 0.0 };
+			GLfloat mat_diffuse[4] = { 0.24, 0.4, 0.47, 0.0 };
 			GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
 			glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
 			glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
 			glMaterialf(GL_FRONT, GL_SHININESS, 50.0);
 
-			glBegin(GL_POLYGON);
-			for (j = 0; j < 4; j++) {
-				Vertex* temp_v = temp_q->verts[j];
-				glNormal3d(temp_v->normal.entry[0], temp_v->normal.entry[1], temp_v->normal.entry[2]);
-				glVertex3d(temp_v->x, temp_v->y, temp_v->z);
+			for (int i = 0; i < poly->nquads; i++) {
+				Quad* temp_q = poly->qlist[i];
+				glBegin(GL_POLYGON);
+				for (int j = 0; j < 4; j++) {
+					Vertex* temp_v = temp_q->verts[j];
+					glNormal3d(temp_v->normal.entry[0], temp_v->normal.entry[1], temp_v->normal.entry[2]);
+					glVertex3d(temp_v->x, temp_v->y, temp_v->z);
+				}
+				glEnd();
 			}
-			glEnd();
-			break;
 		}
-		case 2:
+		break;
+
+		case 2:	// wireframe display
+		{
 			glDisable(GL_LIGHTING);
 			glEnable(GL_LINE_SMOOTH);
 			glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			glBegin(GL_POLYGON);
-			for (j = 0; j < 4; j++) {
-				Vertex* temp_v = temp_q->verts[j];
-				glNormal3d(temp_q->normal.entry[0], temp_q->normal.entry[1], temp_q->normal.entry[2]);
-				glColor3f(0.0, 0.0, 0.0);
-				glVertex3d(temp_v->x, temp_v->y, temp_v->z);
+			glLineWidth(1.0);
+
+			for (int i = 0; i < poly->nquads; i++) {
+				Quad* temp_q = poly->qlist[i];
+
+				glBegin(GL_POLYGON);
+				for (int j = 0; j < 4; j++) {
+					Vertex* temp_v = temp_q->verts[j];
+					glNormal3d(temp_q->normal.entry[0], temp_q->normal.entry[1], temp_q->normal.entry[2]);
+					glColor3f(0.0, 0.0, 0.0);
+					glVertex3d(temp_v->x, temp_v->y, temp_v->z);
+				}
+				glEnd();
 			}
-			glEnd();
 
 			glDisable(GL_BLEND);
-			break;
+		}
+		break;
 
-		case 3:
+		case 3:	// checkerboard pattern display
+		{
 			glDisable(GL_LIGHTING);
-
-			glBegin(GL_POLYGON);
-			for (j = 0; j < 4; j++) {
-				Vertex* temp_v = temp_q->verts[j];
-				glColor3f(temp_v->R, temp_v->G, temp_v->B);
-				glVertex3d(temp_v->x, temp_v->y, temp_v->z);
+			for (int i = 0; i < poly->nquads; i++) {
+				Quad* temp_q = poly->qlist[i];
+				glBegin(GL_POLYGON);
+				for (int j = 0; j < 4; j++) {
+					Vertex* temp_v = temp_q->verts[j];
+					glColor3f(temp_v->R, temp_v->G, temp_v->B);
+					glVertex3d(temp_v->x, temp_v->y, temp_v->z);
+				}
+				glEnd();
 			}
-			glEnd();
-			break;
-		case 5:	// IBFV
-			display_IBFV();
-			break;
+		}
+		break;
+
+		case 5:	// IBFV vector field display
+		{
+			displayIBFV();
+			glutPostRedisplay();
+		}
+		break;
+
+		case 6: // Sobel display
+		{
+			displaySobel();
+			glutPostRedisplay();
+		}
+		break;
 		}
 	}
 }
