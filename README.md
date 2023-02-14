@@ -8,7 +8,7 @@ We present a tool that converts any image or video into a painterly rendered one
 
 The first aspect of this project is the Sobel filter, which will be used to generate the streamlines used for brush strokes. The Sobel filter takes an image as input and creates a new image with emphasized edges. In this process, the gradient vector field of the input image is approximately computed in order to determine the intensity for each pixel. The image is then convolved with the filter operator in both the horizontal and vertical directions. In terms of image processing, convolution refers to a 3x3 matrix of surrounding pixels, which are used to compare the change of intensity in the selected pixel in any given direction. This intensity change is used to compute the gradient vector for that pixel, which points in the direction of the greatest change in intensity. For example, these images from Spongebob will present the following results when the Sobel operator is applied:
 
-![Spongebob edge fields](spongebobresults.JPEG)
+![Spongebob edge fields](spongebobresults.JPG)
 
 ## Streamline Creation
 
