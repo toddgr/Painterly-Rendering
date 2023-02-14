@@ -37,7 +37,8 @@ void initSobel()
 
 	for (i = 0; i < 256; i++) lut[i] = i < 127 ? 0 : 255;
 	for (i = 0; i < NPN; i++)
-		for (j = 0; j < NPN; j++) phase[i][j] = rand() % 256;
+		//for (j = 0; j < NPN; j++) phase[i][j] = rand() % 256;
+		for (j = 0; j < NPN; j++) phase[i][j] = 0.;
 
 	for (i = 0; i < NPN; i++)
 	{
@@ -89,7 +90,7 @@ void displaySobel() {
 
 	glEnable(GL_BLEND);
 
-	// blend in noise pattern
+	// blend in noise pattern 
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
 	glLoadIdentity();
@@ -163,6 +164,7 @@ void sobelFilter(const std::string& fname) {
 	GLubyte pat[NPN][NPN][4];	// image before filter is applied - intensity
 	GLubyte pat0[NPN][NPN][4];	// image after filter is applied - edge field?
 
+	// Set color of each pixel to intensity coefficient
 	int i, j;
 	for (i = 0; i < NPN; i++) {		// rows
 		for (j = 0; j < NPN; j++) { // columns

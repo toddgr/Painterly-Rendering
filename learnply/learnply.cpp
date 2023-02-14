@@ -455,7 +455,7 @@ void keyboard(unsigned char key, int x, int y) {
 	{
 		display_mode = 6;
 		initSobel();
-		sobelFilter("../data/image/panic.ppm");
+		sobelFilter("../data/image/bysmall.ppm");
 		glutPostRedisplay();
 	}
 
