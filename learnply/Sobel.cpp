@@ -240,9 +240,10 @@ void initImage()
 	GLubyte pat[NPN][NPN][4];
 	int i, j, k;
 
+	
 	for (i = 0; i < 256; i++) lut[i] = i < 127 ? 0 : 255;
 	for (i = 0; i < NPN; i++)
-		//for (j = 0; j < NPN; j++) phase[i][j] = rand() % 256;
+		//for (j = 0; j < npn; j++) phase[i][j] = rand() % 256;
 		for (j = 0; j < NPN; j++) phase[i][j] = 0.;
 
 	for (i = 0; i < NPN; i++)
@@ -251,7 +252,7 @@ void initImage()
 		{
 			pat[i][j][0] =
 				pat[i][j][1] =
-				pat[i][j][2] = lut[(phase[i][j]) % 255];
+				pat[i][j][2] = 1.;
 			pat[i][j][3] = ALPHA;
 		}
 	}
@@ -281,7 +282,7 @@ void displayImage() {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// background for rendering color coding and lighting. If not an edge, pixel will be blue (for testing purposes).
-	glClearColor(0., 0., 1., 1.0);
+	glClearColor(0., 0., 0., 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// draw the mesh using pixels and use vector field to advect texture coordinates
@@ -326,9 +327,9 @@ void displayImage() {
 
 	glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 
-	// background for rendering color coding and lighting. Anything that is not the image will be a noticable magenta.
+	// background for rendering color coding and lighting. Anything that is not the image will be white.
 	// Not related to edge display.
-	glClearColor(1.0, 0.0, 1.0, 1.0);
+	glClearColor(0., 0., 0., 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, win_width, win_height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 	for (int i = 0; i < poly->nquads; i++)
@@ -374,59 +375,59 @@ void imageFilter(const std::string& fname) {
 	int i, j;
 	for (i = 0; i < NPN; i++) {		// rows
 		for (j = 0; j < NPN; j++) { // columns
-			float c = 0.299 * img.r[(NPN - i - 1) * NPN + j] +
-				0.587 * img.g[(NPN - i - 1) * NPN + j] +
-				0.114 * img.b[(NPN - i - 1) * NPN + j];
-			pat0[i][j][0] = c;
-			pat0[i][j][1] = c;
-			pat0[i][j][2] = c;
+			//float c = 0.299 * img.r[(NPN - i - 1) * NPN + j] +
+			//	0.587 * img.g[(] +
+			//	0.114 * img.b[];
+			pat0[i][j][0] = img.r[(NPN - i - 1) * NPN + j];
+			pat0[i][j][1] = img.g[(NPN - i - 1) * NPN + j];
+			pat0[i][j][2] = img.b[(NPN - i - 1) * NPN + j];
 			pat0[i][j][3] = alpha1;
 		}
 	}
 
-	//filter
-	for (i = 1; i < NPN - 1; i++) {		// row
-		for (j = 1; j < NPN - 1; j++) {	// column
-			float mag0x = 0.0;
-			float mag1x = 0.0;
-			float mag2x = 0.0;
-			float mag0y = 0.0;
-			float mag1y = 0.0;
-			float mag2y = 0.0;
+	////filter
+	//for (i = 1; i < NPN - 1; i++) {		// row
+	//	for (j = 1; j < NPN - 1; j++) {	// column
+	//		float mag0x = 0.0;
+	//		float mag1x = 0.0;
+	//		float mag2x = 0.0;
+	//		float mag0y = 0.0;
+	//		float mag1y = 0.0;
+	//		float mag2y = 0.0;
 
-			for (int a = 0; a < 3; a++) {
-				for (int b = 0; b < 3; b++) {
-					mag0x += pat0[i - 1 + a][j - 1 + b][0] * kernelx[a][b];
-					mag1x += pat0[i - 1 + a][j - 1 + b][1] * kernelx[a][b];
-					mag2x += pat0[i - 1 + a][j - 1 + b][2] * kernelx[a][b];
+	//		for (int a = 0; a < 3; a++) {
+	//			for (int b = 0; b < 3; b++) {
+	//				mag0x += pat0[i - 1 + a][j - 1 + b][0] * kernelx[a][b];
+	//				mag1x += pat0[i - 1 + a][j - 1 + b][1] * kernelx[a][b];
+	//				mag2x += pat0[i - 1 + a][j - 1 + b][2] * kernelx[a][b];
 
-					mag0y += pat0[i - 1 + a][j - 1 + b][0] * kernely[a][b];
-					mag1y += pat0[i - 1 + a][j - 1 + b][1] * kernely[a][b];
-					mag2y += pat0[i - 1 + a][j - 1 + b][2] * kernely[a][b];
-				}
-			}
+	//				mag0y += pat0[i - 1 + a][j - 1 + b][0] * kernely[a][b];
+	//				mag1y += pat0[i - 1 + a][j - 1 + b][1] * kernely[a][b];
+	//				mag2y += pat0[i - 1 + a][j - 1 + b][2] * kernely[a][b];
+	//			}
+	//		}
 
-			float v0 = std::sqrt(mag0x * mag0x + mag0y * mag0y);
-			float v1 = std::sqrt(mag1x * mag1x + mag1y * mag1y);
-			float v2 = std::sqrt(mag2x * mag2x + mag2y * mag2y);
+	//		float v0 = std::sqrt(mag0x * mag0x + mag0y * mag0y);
+	//		float v1 = std::sqrt(mag1x * mag1x + mag1y * mag1y);
+	//		float v2 = std::sqrt(mag2x * mag2x + mag2y * mag2y);
 
-			if (v0 > 255) v0 = 255;
-			if (v0 < 0) v0 = 0;
-			if (v1 > 255) v1 = 255;
-			if (v1 < 0) v1 = 0;
-			if (v2 > 255) v2 = 255;
-			if (v2 < 0) v2 = 0;
+	//		if (v0 > 255) v0 = 255;
+	//		if (v0 < 0) v0 = 0;
+	//		if (v1 > 255) v1 = 255;
+	//		if (v1 < 0) v1 = 0;
+	//		if (v2 > 255) v2 = 255;
+	//		if (v2 < 0) v2 = 0;
 
-			pat[i][j][0] = v0;
-			pat[i][j][1] = v1;
-			pat[i][j][2] = v2;
-			pat[i][j][3] = alpha1;
-		}
-	}
+	//		pat[i][j][0] = v0;
+	//		pat[i][j][1] = v1;
+	//		pat[i][j][2] = v2;
+	//		pat[i][j][3] = alpha1;
+	//	}
+	//}
 
 	glNewList(1, GL_COMPILE);
 	glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0,
-		GL_RGBA, GL_UNSIGNED_BYTE, pat);
+		GL_RGBA, GL_UNSIGNED_BYTE, pat0);
 	glEndList();
 
 }

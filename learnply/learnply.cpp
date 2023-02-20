@@ -35,7 +35,7 @@ int win_width = 1024;
 int win_height = 1024;
 const int view_mode = 0;		// 0 = orthogonal, 1=perspective
 const double radius_factor = 0.9;
-const std::string fname = "../data/image/teddysmall.ppm";
+const std::string fname = "../data/image/bysmall.ppm";
 
 /*
 Use keys 1 to 0 to switch among different display modes.
