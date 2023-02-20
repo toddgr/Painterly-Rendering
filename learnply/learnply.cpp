@@ -24,10 +24,6 @@
 Polyhedron* poly;
 std::vector<POLYLINE> polylines;
 std::list<Singularity> singularities;
-//std::vector<Vertex> critPoints;
-//std::vector<Vertex> maxCritPoints;
-//std::vector<Vertex> minCritPoints;
-//std::vector<Vertex> saddleCritPoints;
 unsigned char* pixels;
 bool original_image = true;
 bool flow_image = false;
