@@ -35,7 +35,7 @@ int win_width = 1024;
 int win_height = 1024;
 const int view_mode = 0;		// 0 = orthogonal, 1=perspective
 const double radius_factor = 0.9;
-const std::string fname = "../data/image/bysmall.ppm";
+const std::string fname = "../data/image/spongebob.ppm";
 
 /*
 Use keys 1 to 0 to switch among different display modes.
@@ -288,7 +288,7 @@ void display_quads(GLenum mode, Polyhedron* this_poly)
 		{
 			mat_diffuse[0] = 1.0;
 			mat_diffuse[1] = 1.0;
-			mat_diffuse[2] = 0.0;
+			mat_diffuse[2] = 1.0;
 			mat_diffuse[3] = 1.0;
 		}
 		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
@@ -377,7 +377,7 @@ void display_selected_quad(Polyhedron* this_poly)
 	glBegin(GL_POLYGON);
 	for (j = 0; j < 4; j++) {
 		Vertex* temp_v = temp_q->verts[j];
-		glColor3f(1.0, 0.0, 1.0);
+		glColor3f(1.0, 1.0, 1.0);
 		glVertex3d(temp_v->x, temp_v->y, 0.001);
 	}
 	glEnd();
@@ -410,7 +410,7 @@ void display_selected_vertex(Polyhedron* this_poly)
 	GLfloat mat_diffuse[4];
 
 	{
-		mat_diffuse[0] = 1.0;
+		mat_diffuse[0] = 0.0;
 		mat_diffuse[1] = 0.0;
 		mat_diffuse[2] = 0.0;
 		mat_diffuse[3] = 1.0;

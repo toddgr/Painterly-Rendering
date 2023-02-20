@@ -282,7 +282,7 @@ void displayImage() {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// background for rendering color coding and lighting. If not an edge, pixel will be blue (for testing purposes).
-	glClearColor(0., 0., 0., 1.0);
+	glClearColor(1., 1., 1., 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// draw the mesh using pixels and use vector field to advect texture coordinates
@@ -371,16 +371,16 @@ void imageFilter(const std::string& fname) {
 	GLubyte pat[NPN][NPN][4];	// image before filter is applied - intensity
 	GLubyte pat0[NPN][NPN][4];	// image after filter is applied - edge field?
 
-	// Set color of each pixel to intensity coefficient
+	// Set color of each pixel -- something is wrong here
 	int i, j;
 	for (i = 0; i < NPN; i++) {		// rows
 		for (j = 0; j < NPN; j++) { // columns
 			//float c = 0.299 * img.r[(NPN - i - 1) * NPN + j] +
 			//	0.587 * img.g[(] +
 			//	0.114 * img.b[];
-			pat0[i][j][0] = img.r[(NPN - i - 1) * NPN + j];
-			pat0[i][j][1] = img.g[(NPN - i - 1) * NPN + j];
-			pat0[i][j][2] = img.b[(NPN - i - 1) * NPN + j];
+			pat0[i][j][0] = img.g[(NPN - i - 1) * NPN + j];
+			pat0[i][j][1] = img.b[(NPN - i - 1) * NPN + j];
+			pat0[i][j][2] = img.r[(NPN - i - 1) * NPN + j];
 			pat0[i][j][3] = alpha1;
 		}
 	}
