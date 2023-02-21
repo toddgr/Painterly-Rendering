@@ -24,11 +24,8 @@
 Polyhedron* poly;
 std::vector<POLYLINE> polylines;
 std::list<Singularity> singularities;
-//std::vector<Vertex> critPoints;
-//std::vector<Vertex> maxCritPoints;
-//std::vector<Vertex> minCritPoints;
-//std::vector<Vertex> saddleCritPoints;
 unsigned char* pixels;
+unsigned char* original_pixels;
 bool original_image = true;
 bool flow_image = false;
 
@@ -38,6 +35,7 @@ int win_width = 1024;
 int win_height = 1024;
 const int view_mode = 0;		// 0 = orthogonal, 1=perspective
 const double radius_factor = 0.9;
+const std::string fname = "../data/image/spongebob.ppm";
 
 /*
 Use keys 1 to 0 to switch among different display modes.
@@ -290,7 +288,7 @@ void display_quads(GLenum mode, Polyhedron* this_poly)
 		{
 			mat_diffuse[0] = 1.0;
 			mat_diffuse[1] = 1.0;
-			mat_diffuse[2] = 0.0;
+			mat_diffuse[2] = 1.0;
 			mat_diffuse[3] = 1.0;
 		}
 		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
@@ -379,7 +377,7 @@ void display_selected_quad(Polyhedron* this_poly)
 	glBegin(GL_POLYGON);
 	for (j = 0; j < 4; j++) {
 		Vertex* temp_v = temp_q->verts[j];
-		glColor3f(1.0, 0.0, 1.0);
+		glColor3f(1.0, 1.0, 1.0);
 		glVertex3d(temp_v->x, temp_v->y, 0.001);
 	}
 	glEnd();
@@ -412,7 +410,7 @@ void display_selected_vertex(Polyhedron* this_poly)
 	GLfloat mat_diffuse[4];
 
 	{
-		mat_diffuse[0] = 1.0;
+		mat_diffuse[0] = 0.0;
 		mat_diffuse[1] = 0.0;
 		mat_diffuse[2] = 0.0;
 		mat_diffuse[3] = 1.0;
@@ -450,14 +448,24 @@ void keyboard(unsigned char key, int x, int y) {
 		poly->finalize();  // finalize_everything
 		exit(0);
 		break;
-
+	case 'o':
+	{
+		display_mode = 3;	// Display mode for original image
+		printf("Displaying original image.\n");
+		initImage();	// Initialize image out of input file
+		imageFilter(fname);
+		glutPostRedisplay();
+	}
+	break;
 	case 's':  // Sobel filter implementation
 	{
 		display_mode = 6;
+		printf("Displaying Sobel image.\n");
 		initSobel();
-		sobelFilter("../data/image/bysmall.ppm");
+		sobelFilter(fname);
 		glutPostRedisplay();
 	}
+	break;
 
 	case 'r':
 		mat_ident(rotmat);
@@ -669,10 +677,6 @@ void display(void)
 	//display polyline
 	display_polyline(polylines);
 
-	//display singularities
-	display_singularities();
-	//display_IBFV();
-
 	glFlush();
 	glutSwapBuffers();
 	glFinish();
@@ -754,19 +758,10 @@ void display_polyhedron(Polyhedron* poly)
 		}
 		break;
 
-		case 3:	// checkerboard pattern display
+		case 3:	// display original image
 		{
-			glDisable(GL_LIGHTING);
-			for (int i = 0; i < poly->nquads; i++) {
-				Quad* temp_q = poly->qlist[i];
-				glBegin(GL_POLYGON);
-				for (int j = 0; j < 4; j++) {
-					Vertex* temp_v = temp_q->verts[j];
-					glColor3f(temp_v->R, temp_v->G, temp_v->B);
-					glVertex3d(temp_v->x, temp_v->y, temp_v->z);
-				}
-				glEnd();
-			}
+			displayImage();
+			glutPostRedisplay();
 		}
 		break;
 

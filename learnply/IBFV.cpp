@@ -119,7 +119,7 @@ void displayIBFV()
 			float py = ty1 + dy;
 
 			glTexCoord2f(px, py);
-			if (original_image) { // Something is wrong with this code here, 
+			if (original_image) {		// Something is wrong with this code here, 
 				glTexCoord2f(tx, ty);	// or at least how the original_image bool is handled.
 			}
 			else {
