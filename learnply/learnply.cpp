@@ -35,7 +35,7 @@ int win_width = 1024;
 int win_height = 1024;
 const int view_mode = 0;		// 0 = orthogonal, 1=perspective
 const double radius_factor = 0.9;
-const std::string fname = "../data/image/spongebob.ppm";
+const std::string fname = "../data/image/bysmall.ppm";
 
 /*
 Use keys 1 to 0 to switch among different display modes.
@@ -457,7 +457,16 @@ void keyboard(unsigned char key, int x, int y) {
 		glutPostRedisplay();
 	}
 	break;
-	case 's':  // Sobel filter implementation
+	case 's':  // streamlines
+	{
+		display_mode = 6;
+		printf("Displaying streamlines.\n");
+		initSobel();
+		sobelFilter(fname);
+		glutPostRedisplay();
+	}
+	break;
+	case 'e':  // Edge field - Sobel filter implementation
 	{
 		display_mode = 6;
 		printf("Displaying Sobel image.\n");
