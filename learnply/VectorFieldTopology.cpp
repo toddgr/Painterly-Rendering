@@ -41,7 +41,8 @@ bool sinp2Boundary(icVector3& currPos, const icVector3& min, const icVector3& ma
 	return hitBoundary;
 }
 
-// Streamline tracing  // Verified
+// Streamline tracing
+// Traces the streamline into the next quad
 void streamlineTrace(Quad*& nextQuad, Quad* currQuad, icVector3 currPos, icVector3 currVec, double t,
 	const icVector3& min, const icVector3& max) {
 
@@ -57,7 +58,7 @@ void streamlineTrace(Quad*& nextQuad, Quad* currQuad, icVector3 currPos, icVecto
 
 		double t_ = INFINITY;
 		Quad* nextQuad_ = nullptr;
-		for (int e_i = 0; e_i < 4; e_i++) {
+		for (int e_i = 0; e_i < 4; e_i++) { // For each of the quad edges
 			Edge* edge = currQuad->edges[e_i];
 			Vertex* v0 = edge->verts[0];
 			Vertex* v1 = edge->verts[1];
@@ -103,36 +104,34 @@ void streamlineTrace(Quad*& nextQuad, Quad* currQuad, icVector3 currPos, icVecto
 	nextQuad = currQuad;
 }
 
-// Get streamline
+// Get streamline either forward or backward from a given vertex
 void streamlineFB(POLYLINE& line, const icVector3& seed, const double& step, bool forward) {  // Verified
-	line.m_vertices.push_back(seed);
-	Quad* quad = findQuad(seed);
+	line.m_vertices.push_back(seed);	// Push the initial vertex to the line
+	Quad* quad = findQuad(seed);		// Find the quad that the initial vertex is in
 	icVector3 min, max;
-	findMinMaxField(min, max);
-	icVector3 currPos = seed;
+	findMinMaxField(min, max);			// Find the minimum and maximum (RGB?) values
+	icVector3 currPos = seed;			// Advance to the next
 	double coef = 1.0;
 	if (!forward) {
 		coef = -1.0;
 	}
 	while (quad != nullptr) {
-		icVector3 currVec = getVector(quad, currPos);
-		//v:=0
-		if (currVec.length() < EPSILON) {
+		icVector3 currVec = getVector(quad, currPos);	// Get the Vector
+		//v:=0											// Could this be replaced with the edge field?
+		if (currVec.length() < EPSILON) {				// Control the length of the vector
 			break;
 		}
 		//first euler
 		icVector3 nextPos = currPos + step * currVec * coef;
-		//on boundary
+		// Is the next position in the boundary?
 		if (sinp2Boundary(nextPos, min, max)) {
-			line.m_vertices.push_back(nextPos);
+			line.m_vertices.push_back(nextPos);	// If yes add to the line
 			break;
 		}
 		//get the new quad
 		Quad* nextQuad = nullptr;
-		//nextQuad = findQuad(nextPos);
+		// Trace the streamline into the next quad
 		streamlineTrace(nextQuad, quad, currPos, currVec * coef, step, min, max);
-		//
-		//streamlineTrace(nextQuad, quad, currPos, currVec * coef, step, min, max);
 		//update quad, pos, vector
 		quad = nextQuad;
 		currPos = nextPos;
@@ -141,17 +140,18 @@ void streamlineFB(POLYLINE& line, const icVector3& seed, const double& step, boo
 }
 
 void streamline(POLYLINE& line, const icVector3& seed, const double& step) {  // verified
-	streamlineFB(line, seed, step);
+	streamlineFB(line, seed, step);				// Create streamline forward
 	POLYLINE line_back;
-	streamlineFB(line_back, seed, step, false);
-	line.merge(line_back);
+	streamlineFB(line_back, seed, step, false);	// Create streamline backward
+	line.merge(line_back);						// Merge the two together
 }
 
 // Find minimum and maximum coordinate
+// Could this be converted to find the min and max intensity gradient?
 void findMinMaxField(icVector3& min, icVector3& max) {
 	min.x = poly->vlist[0]->x;
-	min.y = poly->vlist[0]->y;
-	min.z = poly->vlist[0]->z;
+	min.y = poly->vlist[0]->G;
+	min.z = poly->vlist[0]->B;
 	max = min;
 	for (int i = 1; i < poly->nverts; i++) {
 		if (min.x > poly->vlist[i]->x) {
@@ -202,6 +202,7 @@ bool insideQuad(const Quad* q, const icVector3& p) {  // verified
 
 
 // Get the vector from vector field by bilinear interpolation
+// Could we alter this to instead get the gradient vector from the edge field?
 icVector3 getVector(Quad* q, const icVector3& p) {
 	double x1 = q->verts[2]->x;
 	double x2 = q->verts[0]->x;

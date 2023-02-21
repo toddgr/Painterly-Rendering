@@ -165,7 +165,7 @@ void sobelFilter(const std::string& fname) {
 	GLubyte pat[NPN][NPN][4];	// image before filter is applied - intensity
 	GLubyte pat0[NPN][NPN][4];	// image after filter is applied - edge field?
 
-	// Set color of each pixel to intensity coefficient
+	// Set color of each pixel to its intensity
 	int i, j;
 	for (i = 0; i < NPN; i++) {		// rows
 		for (j = 0; j < NPN; j++) { // columns
@@ -179,9 +179,10 @@ void sobelFilter(const std::string& fname) {
 		}
 	}
 
-	//filter
+	// Sobel filter
 	for (i = 1; i < NPN - 1; i++) {		// row
 		for (j = 1; j < NPN - 1; j++) {	// column
+			// Initial magnitude for r,g,b (0,1,2) in the x and y directions
 			float mag0x = 0.0;
 			float mag1x = 0.0;
 			float mag2x = 0.0;
@@ -189,8 +190,9 @@ void sobelFilter(const std::string& fname) {
 			float mag1y = 0.0;
 			float mag2y = 0.0;
 
-			for (int a = 0; a < 3; a++) {
-				for (int b = 0; b < 3; b++) {
+			// Convolve with the horizontal and vertical derivative approximations
+			for (int a = 0; a < 3; a++) {		// Horizontal
+				for (int b = 0; b < 3; b++) {	// Vertical
 					mag0x += pat0[i - 1 + a][j - 1 + b][0] * kernelx[a][b];
 					mag1x += pat0[i - 1 + a][j - 1 + b][1] * kernelx[a][b];
 					mag2x += pat0[i - 1 + a][j - 1 + b][2] * kernelx[a][b];
@@ -201,10 +203,12 @@ void sobelFilter(const std::string& fname) {
 				}
 			}
 
-			float v0 = std::sqrt(mag0x * mag0x + mag0y * mag0y);
-			float v1 = std::sqrt(mag1x * mag1x + mag1y * mag1y);
-			float v2 = std::sqrt(mag2x * mag2x + mag2y * mag2y);
+			// Average values for r, g, b
+			float v0 = std::sqrt(mag0x * mag0x + mag0y * mag0y);	// R gradient
+			float v1 = std::sqrt(mag1x * mag1x + mag1y * mag1y);	// G gradient
+			float v2 = std::sqrt(mag2x * mag2x + mag2y * mag2y);	// B gradient
 
+			// Color value will be either black or white
 			if (v0 > 255) v0 = 255;
 			if (v0 < 0) v0 = 0;
 			if (v1 > 255) v1 = 255;
@@ -212,6 +216,7 @@ void sobelFilter(const std::string& fname) {
 			if (v2 > 255) v2 = 255;
 			if (v2 < 0) v2 = 0;
 
+			// Assign RGB values to current pixel for display
 			pat[i][j][0] = v0;
 			pat[i][j][1] = v1;
 			pat[i][j][2] = v2;

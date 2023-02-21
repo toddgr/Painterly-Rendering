@@ -84,7 +84,7 @@ Main program.
 int main(int argc, char* argv[])
 {
 	/*load mesh from ply file*/
-	FILE* this_file = fopen("../data/scalar_data/r2.ply", "r");
+	FILE* this_file = fopen("../data/vector_data/v1.ply", "r");
 	poly = new Polyhedron(this_file);
 	fclose(this_file);
 
@@ -459,16 +459,19 @@ void keyboard(unsigned char key, int x, int y) {
 	break;
 	case 's':  // streamlines
 	{
-		display_mode = 1;
+		display_mode = 4; // Display mode for streamlines over edge field
 		printf("Displaying streamlines.\n");
+
+		// Need to create edge field first
+		initSobel(); 
+		sobelFilter(fname);
+
 		POLYLINE line;
-		//streamlineFB(line, icVector3(2, 2, 0), 0.01);
-		//polylines.push_back(line);
-		for (int i = -10; i < 10; i++) {
+		for (int i = -10; i < 10; i++) { // Display 20 streamlines
 			line.m_vertices.clear();
-			streamline(line, icVector3(i * 1.0, 0, 0), 0.005); // d2 was 0.001 but was taking too long to render
-			line.m_rgb = icVector3(1.0, 1.0, 1.0);
-			polylines.push_back(line);
+			streamline(line, icVector3(i, i, 0), 0.005);	// d2 was 0.001 but was taking too long to render
+			line.m_rgb = icVector3(1.0, 1.0, 1.0);				// Streamlines are white for now
+			polylines.push_back(line);							// Add line to polylines
 		}
 		glutPostRedisplay();
 	}
@@ -777,6 +780,13 @@ void display_polyhedron(Polyhedron* poly)
 		case 3:	// display original image
 		{
 			displayImage();
+			glutPostRedisplay();
+		}
+		break;
+
+		case 4:	// display streamlines
+		{
+			displaySobel();
 			glutPostRedisplay();
 		}
 		break;
