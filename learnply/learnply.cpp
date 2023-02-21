@@ -83,7 +83,7 @@ Main program.
 ******************************************************************************/
 int main(int argc, char* argv[])
 {
-	/*load mesh from ply file v1 - v3 - v4 - v6 - v8 - v9 - v10*/
+	/*load mesh from ply file*/
 	FILE* this_file = fopen("../data/scalar_data/r2.ply", "r");
 	poly = new Polyhedron(this_file);
 	fclose(this_file);
@@ -459,10 +459,17 @@ void keyboard(unsigned char key, int x, int y) {
 	break;
 	case 's':  // streamlines
 	{
-		display_mode = 6;
+		display_mode = 1;
 		printf("Displaying streamlines.\n");
-		initSobel();
-		sobelFilter(fname);
+		POLYLINE line;
+		//streamlineFB(line, icVector3(2, 2, 0), 0.01);
+		//polylines.push_back(line);
+		for (int i = -10; i < 10; i++) {
+			line.m_vertices.clear();
+			streamline(line, icVector3(i * 1.0, 0, 0), 0.005); // d2 was 0.001 but was taking too long to render
+			line.m_rgb = icVector3(1.0, 1.0, 1.0);
+			polylines.push_back(line);
+		}
 		glutPostRedisplay();
 	}
 	break;
