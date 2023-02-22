@@ -104,12 +104,12 @@ void streamlineTrace(Quad*& nextQuad, Quad* currQuad, icVector3 currPos, icVecto
 	nextQuad = currQuad;
 }
 
-// Get streamline either forward or backward from a given vertex
+// Get streamline (either forward or backward) from a given vertex
 void streamlineFB(POLYLINE& line, const icVector3& seed, const double& step, bool forward) {  // Verified
 	line.m_vertices.push_back(seed);	// Push the initial vertex to the line
 	Quad* quad = findQuad(seed);		// Find the quad that the initial vertex is in
 	icVector3 min, max;
-	findMinMaxField(min, max);			// Find the minimum and maximum (RGB?) values
+	findMinMaxField(min, max);			// Find the minimum and maximum coordinates
 	icVector3 currPos = seed;			// Advance to the next
 	double coef = 1.0;
 	if (!forward) {
@@ -147,11 +147,10 @@ void streamline(POLYLINE& line, const icVector3& seed, const double& step) {  //
 }
 
 // Find minimum and maximum coordinate
-// Could this be converted to find the min and max intensity gradient?
 void findMinMaxField(icVector3& min, icVector3& max) {
 	min.x = poly->vlist[0]->x;
-	min.y = poly->vlist[0]->G;
-	min.z = poly->vlist[0]->B;
+	min.y = poly->vlist[0]->y;
+	min.z = poly->vlist[0]->z;
 	max = min;
 	for (int i = 1; i < poly->nverts; i++) {
 		if (min.x > poly->vlist[i]->x) {
@@ -201,9 +200,10 @@ bool insideQuad(const Quad* q, const icVector3& p) {  // verified
 }
 
 
-// Get the vector from vector field by bilinear interpolation
+// Get the vector from vector field by *bilinear interpolation*
 // Could we alter this to instead get the gradient vector from the edge field?
 icVector3 getVector(Quad* q, const icVector3& p) {
+	
 	double x1 = q->verts[2]->x;
 	double x2 = q->verts[0]->x;
 	double y1 = q->verts[2]->y;
