@@ -162,8 +162,9 @@ void sobelFilter(const std::string& fname) {
 		{1, 2, 1} };
 
 	ppm img(fname);
-	GLubyte pat[NPN][NPN][4];	// image before filter is applied - intensity
-	GLubyte pat0[NPN][NPN][4];	// image after filter is applied - edge field?
+	GLubyte pat0[NPN][NPN][4];	// image before filter is applied - intensity
+	GLubyte pat[NPN][NPN][4];	// image after filter is applied - edge field?
+								// add a fifth and sixth element to store the vx and vy elements?
 
 	// Set color of each pixel to intensity coefficient
 	int i, j;
@@ -179,7 +180,7 @@ void sobelFilter(const std::string& fname) {
 		}
 	}
 
-	//filter
+	// sobel filter
 	for (i = 1; i < NPN - 1; i++) {		// row
 		for (j = 1; j < NPN - 1; j++) {	// column
 			float mag0x = 0.0;
@@ -224,6 +225,22 @@ void sobelFilter(const std::string& fname) {
 		GL_RGBA, GL_UNSIGNED_BYTE, pat);
 	glEndList();
 
+}
+
+void createEdgeFieldFromSobel() { // should not be void forever. Take in image and poly file?
+	// Returns an edge field
+	GLubyte edgefield[NPN][NPN][2];	// store vx, vy value per... texel? pixel? What type should this have
+
+	// do all of the things that the original sobel filter does, 
+	// but calculate and store each of the vx and vy values for each 9opixel? texel?) that are used in displaysobel
+
+	// but instead of going to display the sobel filter, we assign the values to the quad directly
+	// no texture nonsense
+
+
+
+	
+	// return edge field
 }
 
 
@@ -328,7 +345,7 @@ void displayImage() {
 	glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 
 	// background for rendering color coding and lighting. Anything that is not the image will be white.
-	// Not related to edge display.
+	// Not related to edge display, but perhaps we can use this section to assign vx and vy values here.
 	glClearColor(0., 0., 0., 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, win_width, win_height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
