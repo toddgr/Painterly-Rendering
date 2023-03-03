@@ -208,7 +208,7 @@ icVector3 getVector(Quad* q, const icVector3& p) {
 	double x2 = q->verts[0]->x;
 	double y1 = q->verts[2]->y;
 	double y2 = q->verts[0]->y;
-
+	// Replace these four lines by pulling data from the Sobel texture
 	icVector3 v11(q->verts[2]->vx, q->verts[2]->vy, q->verts[2]->vz);
 	icVector3 v12(q->verts[1]->vx, q->verts[1]->vy, q->verts[1]->vz);
 	icVector3 v21(q->verts[3]->vx, q->verts[3]->vy, q->verts[3]->vz);

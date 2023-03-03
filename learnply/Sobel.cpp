@@ -162,8 +162,9 @@ void sobelFilter(const std::string& fname) {
 		{1, 2, 1} };
 
 	ppm img(fname);
-	GLubyte pat[NPN][NPN][4];	// image before filter is applied - intensity
-	GLubyte pat0[NPN][NPN][4];	// image after filter is applied - edge field?
+	GLubyte pat0[NPN][NPN][4];	// image before filter is applied - intensity
+	GLubyte pat[NPN][NPN][4];	// image after filter is applied - edge field?
+								// add a fifth and sixth element to store the vx and vy elements?
 
 	// Set color of each pixel to its intensity
 	int i, j;
@@ -190,9 +191,8 @@ void sobelFilter(const std::string& fname) {
 			float mag1y = 0.0;
 			float mag2y = 0.0;
 
-			// Convolve with the horizontal and vertical derivative approximations
-			for (int a = 0; a < 3; a++) {		// Horizontal
-				for (int b = 0; b < 3; b++) {	// Vertical
+			for (int a = 0; a < 3; a++) {
+				for (int b = 0; b < 3; b++) {
 					mag0x += pat0[i - 1 + a][j - 1 + b][0] * kernelx[a][b];
 					mag1x += pat0[i - 1 + a][j - 1 + b][1] * kernelx[a][b];
 					mag2x += pat0[i - 1 + a][j - 1 + b][2] * kernelx[a][b];
@@ -229,6 +229,22 @@ void sobelFilter(const std::string& fname) {
 		GL_RGBA, GL_UNSIGNED_BYTE, pat);
 	glEndList();
 
+}
+
+void createEdgeFieldFromSobel() { // should not be void forever. Take in image and poly file?
+	// Returns an edge field
+	GLubyte edgefield[NPN][NPN][2];	// store vx, vy value per... texel? pixel? What type should this have
+
+	// do all of the things that the original sobel filter does, 
+	// but calculate and store each of the vx and vy values for each 9opixel? texel?) that are used in displaysobel
+
+	// but instead of going to display the sobel filter, we assign the values to the quad directly
+	// no texture nonsense
+
+
+
+	
+	// return edge field
 }
 
 
