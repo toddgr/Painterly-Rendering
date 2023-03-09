@@ -286,17 +286,6 @@ void createEdgeFieldFromSobel() { // should not be void forever. Take in image a
 	// return edge field
 }
 
-void drawstreamlines() {
-	POLYLINE line;
-	for (int i = -20; i < 20; i++) { // Display streamlines
-		line.m_vertices.clear();
-		streamline(line, icVector3(i, i, 0), 0.001);	// d2 was 0.001 but was taking too long to render
-		line.m_rgb = icVector3(1.0, 0.0, 0.0);			// Streamlines are white for now
-		polylines.push_back(line);						// Add line to polylines
-		printf("streamline drawn\n");
-	}
-}
-
 void initImage()
 {
 	pixels = (unsigned char*)malloc(sizeof(unsigned char) * win_width * win_height * 3);
