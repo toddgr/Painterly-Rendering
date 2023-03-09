@@ -1,4 +1,5 @@
 #include "VectorFieldTopology.h"
+#include "Sobel.h"
 #include <iostream>
 #define M_PI 3.14159265358979323846
 
@@ -9,6 +10,8 @@ constexpr auto MIN_K = 0.05;
 extern Polyhedron* poly;
 extern std::vector<POLYLINE> polylines;
 extern std::list<Singularity> singularities;
+
+icVector3 min, max;
 
 bool isZero(double x) {
 	if (x == 0.0) {
@@ -108,8 +111,6 @@ void streamlineTrace(Quad*& nextQuad, Quad* currQuad, icVector3 currPos, icVecto
 void streamlineFB(POLYLINE& line, const icVector3& seed, const double& step, bool forward) {  // Verified
 	line.m_vertices.push_back(seed);	// Push the initial vertex to the line
 	Quad* quad = findQuad(seed);		// Find the quad that the initial vertex is in
-	icVector3 min, max;
-	findMinMaxField(min, max);			// Find the minimum and maximum coordinates
 	icVector3 currPos = seed;			// Advance to the next
 	double coef = 1.0;
 	if (!forward) {
@@ -140,6 +141,7 @@ void streamlineFB(POLYLINE& line, const icVector3& seed, const double& step, boo
 }
 
 void streamline(POLYLINE& line, const icVector3& seed, const double& step) {  // verified
+	findMinMaxField(min, max);			// Find the minimum and maximum coordinates
 	streamlineFB(line, seed, step);				// Create streamline forward
 	POLYLINE line_back;
 	streamlineFB(line_back, seed, step, false);	// Create streamline backward
@@ -172,7 +174,10 @@ void findMinMaxField(icVector3& min, icVector3& max) {
 		if (max.z < poly->vlist[i]->z) {
 			min.z = poly->vlist[i]->z;
 		}
+		
 	}
+	std::cout << "min: " << min.x << " " << min.y << " " << min.z << std::endl;
+	std::cout << "max: " << max.x << " " << max.y << " " << max.z << std::endl;
 }
 
 Quad* findQuad(const icVector3& v) {  // verified
@@ -200,29 +205,6 @@ bool insideQuad(const Quad* q, const icVector3& p) {  // verified
 }
 
 
-// Get the vector from vector field by *bilinear interpolation*
-// Could we alter this to instead get the gradient vector from the edge field?
-icVector3 getVector(Quad* q, const icVector3& p) {
-	
-	double x1 = q->verts[2]->x;
-	double x2 = q->verts[0]->x;
-	double y1 = q->verts[2]->y;
-	double y2 = q->verts[0]->y;
-	// Replace these four lines by pulling data from the Sobel texture
-	icVector3 v11(q->verts[2]->vx, q->verts[2]->vy, q->verts[2]->vz);
-	icVector3 v12(q->verts[1]->vx, q->verts[1]->vy, q->verts[1]->vz);
-	icVector3 v21(q->verts[3]->vx, q->verts[3]->vy, q->verts[3]->vz);
-	icVector3 v22(q->verts[0]->vx, q->verts[0]->vy, q->verts[0]->vz);
-	icVector3 v =
-		(x2 - p.x) / (x2 - x1) * (y2 - p.y) / (y2 - y1) * v11 +
-		(p.x - x1) / (x2 - x1) * (y2 - p.y) / (y2 - y1) * v21 +
-		(x2 - p.x) / (x2 - x1) * (p.y - y1) / (y2 - y1) * v12 +
-		(p.x - x1) / (x2 - x1) * (p.y - y1) / (y2 - y1) * v22;
-
-	//normalize vector
-	//normalize(v);
-	return v;
-}
 
 
 bool quadricRoot(double& r0, double& r1, const double& a, const double& b, const double& c) { //verified

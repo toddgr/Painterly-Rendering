@@ -1,6 +1,7 @@
 #include "Sobel.h"
 #include "gl/glew.h"
 #include "polyhedron.h"
+#include "VectorFieldTopology.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
@@ -17,9 +18,12 @@ extern int win_width;
 extern int win_height;
 extern unsigned char* pixels;
 extern unsigned char* original_pixels;
+extern std::vector<POLYLINE> polylines;
 
 float tmax1 = win_width; // / (SCALE * NPN);
 float dmax1 = SCALE / win_width;
+
+GLubyte patsvec[NPN][NPN][2];
 
 int alpha1 = (255 * 0.2);
 
@@ -127,10 +131,12 @@ void displaySobel() {
 	glClearColor(1.0, 1.0, 1.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, win_width, win_height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+	// for each quad on the polygon
 	for (int i = 0; i < poly->nquads; i++)
 	{
 		Quad* qtemp = poly->qlist[i];
 		glBegin(GL_QUADS);
+		// for each vertex in a polygon:
 		for (int j = 0; j < 4; j++)
 		{
 			Vertex* vtemp = qtemp->verts[j];
@@ -148,6 +154,59 @@ void displaySobel() {
 	glDisable(GL_BLEND);
 	glShadeModel(GL_SMOOTH);
 }
+
+// Get the vector from vector field by *bilinear interpolation*
+// Could we alter this to instead get the gradient vector from the edge field?
+icVector3 getVector(Quad* q, const icVector3& p) {
+
+	double x2 = q->verts[2]->x;
+	double x0 = q->verts[0]->x;
+	double y2 = q->verts[2]->y;
+	double y0 = q->verts[0]->y;
+
+	double x1 = q->verts[1]->x;
+	double x3 = q->verts[3]->x;
+	double y1 = q->verts[1]->y;
+	double y3 = q->verts[3]->y;
+
+	int tx2 = x2 / win_width;
+	int tx0 = x0 / win_width;
+	int ty2 = y2 / win_height;
+	int ty0 = y0 / win_height;
+
+	int tx1 = x1 / win_width;
+	int tx3 = x3 / win_width;
+	int ty1 = y1 / win_height;
+	int ty3 = y3 / win_height;
+
+	double vx2 = patsvec[tx2][ty2][0];
+	double vy2 = patsvec[tx2][ty2][1];
+	double vx0 = patsvec[tx0][ty0][0];
+	double vy0 = patsvec[tx0][ty0][1];
+
+	double vx1 = patsvec[tx1][ty1][0];
+	double vy1 = patsvec[tx1][ty1][1];
+	double vx3 = patsvec[tx3][ty3][0];
+	double vy3 = patsvec[tx3][ty3][1];
+
+
+
+	// Replace these four lines by pulling data from the Sobel texture
+	icVector3 v11(vx2, vy2, 0);
+	icVector3 v12(vx1, vy1, 0);
+	icVector3 v21(vx3, vy3, 0);
+	icVector3 v22(vx0, vy0, 0);
+	icVector3 v =
+		(x0 - p.x) / (x0 - x2) * (y0 - p.y) / (y0 - y2) * v11 +
+		(p.x - x2) / (x0 - x2) * (y0 - p.y) / (y0 - y2) * v21 +
+		(x0 - p.x) / (x0 - x2) * (p.y - y2) / (y0 - y2) * v12 +
+		(p.x - x2) / (x0 - x2) * (p.y - y2) / (y0 - y2) * v22;
+
+	//normalize vector
+	//normalize(v);
+	return v;
+}
+
 
 void sobelFilter(const std::string& fname) {
 
@@ -221,6 +280,14 @@ void sobelFilter(const std::string& fname) {
 			pat[i][j][1] = v1;
 			pat[i][j][2] = v2;
 			pat[i][j][3] = alpha1;
+
+			//Assign magnitude values for x and y directions:
+			patsvec[i][j][0] = mag0x;
+			patsvec[i][j][1] = mag0y;
+			
+
+			//printf("patsvec[%d][%d][x]: %f \
+			//	patsvec[% d][% d][y]: %f\n\n", i, j, patsvec[i][j][0], i, j, patsvec[i][j][1]);
 		}
 	}
 
@@ -247,6 +314,16 @@ void createEdgeFieldFromSobel() { // should not be void forever. Take in image a
 	// return edge field
 }
 
+void drawstreamlines() {
+	POLYLINE line;
+	for (int i = -20; i < 20; i++) { // Display streamlines
+		line.m_vertices.clear();
+		streamline(line, icVector3(i, i, 0), 0.001);	// d2 was 0.001 but was taking too long to render
+		line.m_rgb = icVector3(1.0, 0.0, 0.0);			// Streamlines are white for now
+		polylines.push_back(line);						// Add line to polylines
+		printf("streamline drawn\n");
+	}
+}
 
 void initImage()
 {

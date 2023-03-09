@@ -35,7 +35,7 @@ int win_width = 1024;
 int win_height = 1024;
 const int view_mode = 0;		// 0 = orthogonal, 1=perspective
 const double radius_factor = 0.9;
-const std::string fname = "../data/image/teddysmall.ppm";
+const std::string fname = "../data/image/bysmall.ppm";
 
 /*
 Use keys 1 to 0 to switch among different display modes.
@@ -466,13 +466,8 @@ void keyboard(unsigned char key, int x, int y) {
 		initSobel(); 
 		sobelFilter(fname);
 
-		POLYLINE line;
-		for (int i = -10; i < 10; i++) { // Display 20 streamlines
-			line.m_vertices.clear();
-			streamline(line, icVector3(i, i, 0), 0.005);	// d2 was 0.001 but was taking too long to render
-			line.m_rgb = icVector3(1.0, 1.0, 1.0);				// Streamlines are white for now
-			polylines.push_back(line);							// Add line to polylines
-		}
+		drawstreamlines();
+
 		glutPostRedisplay();
 	}
 	break;
