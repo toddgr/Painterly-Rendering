@@ -155,30 +155,6 @@ void displaySobel() {
 	glShadeModel(GL_SMOOTH);
 }
 
-// Get the vector from vector field by *bilinear interpolation*
-// Could we alter this to instead get the gradient vector from the edge field?
-icVector3 getVector(Quad* q, const icVector3& p) {
-
-	double x1 = q->verts[2]->x;
-	double x2 = q->verts[0]->x;
-	double y1 = q->verts[2]->y;
-	double y2 = q->verts[0]->y;
-
-	icVector3 v11(q->verts[2]->vx, q->verts[2]->vy, q->verts[2]->vz);
-	icVector3 v12(q->verts[1]->vx, q->verts[1]->vy, q->verts[1]->vz);
-	icVector3 v21(q->verts[3]->vx, q->verts[3]->vy, q->verts[3]->vz);
-	icVector3 v22(q->verts[0]->vx, q->verts[0]->vy, q->verts[0]->vz);
-	icVector3 v =
-		(x2 - p.x) / (x2 - x1) * (y2 - p.y) / (y2 - y1) * v11 +
-		(p.x - x1) / (x2 - x1) * (y2 - p.y) / (y2 - y1) * v21 +
-		(x2 - p.x) / (x2 - x1) * (p.y - y1) / (y2 - y1) * v12 +
-		(p.x - x1) / (x2 - x1) * (p.y - y1) / (y2 - y1) * v22;
-
-	//normalize vector
-	//normalize(v);
-	return v;
-}
-
 
 void sobelFilter(const std::string& fname) {
 
