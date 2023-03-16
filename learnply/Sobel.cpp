@@ -19,11 +19,11 @@ extern int win_height;
 extern unsigned char* pixels;
 extern unsigned char* original_pixels;
 extern std::vector<POLYLINE> polylines;
+extern GLubyte patsvec[NPN][NPN][2];
 
 float tmax1 = win_width; // / (SCALE * NPN);
 float dmax1 = SCALE / win_width;
 
-GLubyte patsvec[NPN][NPN][2];
 
 int alpha1 = (255 * 0.2);
 
@@ -40,7 +40,7 @@ void initSobel()
 	GLubyte pat[NPN][NPN][4];
 	int i, j, k;
 
-	for (i = 0; i < 256; i++) lut[i] = i < 127 ? 0 : 255;
+	for (i = 0; i < NPN; i++) lut[i] = i < 127 ? 0 : 255;
 	for (i = 0; i < NPN; i++)
 		//for (j = 0; j < NPN; j++) phase[i][j] = rand() % 256;
 		for (j = 0; j < NPN; j++) phase[i][j] = 0.;
@@ -170,9 +170,7 @@ void sobelFilter(const std::string& fname) {
 
 	ppm img(fname);
 	GLubyte pat0[NPN][NPN][4];	// image before filter is applied - intensity
-	GLubyte pat[NPN][NPN][4];	// image after filter is applied - edge field?
-								// add a fifth and sixth element to store the vx and vy elements?
-
+	GLubyte pat[NPN][NPN][4];
 	// Set color of each pixel to its intensity
 	int i, j;
 	for (i = 0; i < NPN; i++) {		// rows
@@ -229,13 +227,9 @@ void sobelFilter(const std::string& fname) {
 			pat[i][j][2] = v2;
 			pat[i][j][3] = alpha1;
 
-			//Assign magnitude values for x and y directions:
 			patsvec[i][j][0] = mag0x;
 			patsvec[i][j][1] = mag0y;
-			
 
-			//printf("patsvec[%d][%d][x]: %f \
-			//	patsvec[% d][% d][y]: %f\n\n", i, j, patsvec[i][j][0], i, j, patsvec[i][j][1]);
 		}
 	}
 

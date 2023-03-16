@@ -36,6 +36,8 @@ int win_height = 1024;
 const int view_mode = 0;		// 0 = orthogonal, 1=perspective
 const double radius_factor = 0.9;
 const std::string fname = "../data/image/bysmall.ppm";
+GLubyte patsvec[NPN][NPN][2];	// image after filter is applied - edge field?
+// add a fifth and sixth element to store the vx and vy elements?
 
 /*
 Use keys 1 to 0 to switch among different display modes.

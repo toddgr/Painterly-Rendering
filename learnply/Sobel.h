@@ -7,6 +7,9 @@
 #include "glError.h"
 #include "polyhedron.h"
 
+
+#define NPN	256 //64
+
 void initSobel();
 void displaySobel();
 void sobelFilter(const std::string& fname);

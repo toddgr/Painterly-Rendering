@@ -2,14 +2,23 @@
 #include "Sobel.h"
 #include <iostream>
 #define M_PI 3.14159265358979323846
+#define NPN 256 // for sobel-- need to change this later
 
 constexpr auto EPSILON = 1.0e-5;
 constexpr auto STEP = 0.005;
 constexpr auto MIN_K = 0.05;
 
+// min and max texture coords
+int rmin = NPN;
+int rmax = 0;
+int cmin = 0;
+int cmax = NPN; 
+
 extern Polyhedron* poly;
 extern std::vector<POLYLINE> polylines;
 extern std::list<Singularity> singularities;
+extern int win_width;
+extern GLubyte patsvec[NPN][NPN][2];
 
 icVector3 min, max;
 
@@ -140,6 +149,7 @@ void streamlineFB(POLYLINE& line, const icVector3& seed, const double& step, boo
 	}
 }
 
+
 void streamline(POLYLINE& line, const icVector3& seed, const double& step) {  // verified
 	streamlineFB(line, seed, step);				// Create streamline forward
 	POLYLINE line_back;
@@ -147,12 +157,13 @@ void streamline(POLYLINE& line, const icVector3& seed, const double& step) {  //
 	line.merge(line_back);						// Merge the two together
 }
 
+
 void drawstreamlines() {
 	POLYLINE line;
 	findMinMaxField(min, max);			// Find the minimum and maximum coordinates
-	for (int i = -20; i < 20; i++) { // Display streamlines
+	for (int i = -1; i < 1; i++) {	// Display streamlines
 		line.m_vertices.clear();
-		streamline(line, icVector3(i, i, 0), 0.001);	// d2 was 0.001 but was taking too long to render
+		streamline(line, icVector3(i, i, 0), 0.1);	// d2 was 0.001 but was taking too long to render
 		line.m_rgb = icVector3(1.0, 0.0, 0.0);			// Streamlines are white for now
 		polylines.push_back(line);						// Add line to polylines
 		printf("streamline drawn\n");
@@ -187,8 +198,8 @@ void findMinMaxField(icVector3& min, icVector3& max) {
 		}
 		
 	}
-	std::cout << "min: " << min.x << " " << min.y << " " << min.z << std::endl;
-	std::cout << "max: " << max.x << " " << max.y << " " << max.z << std::endl;
+	std::cout << "min: {" << min.x << ", " << min.y << ", " << min.z << "}" << std::endl;
+	std::cout << "max: {" << max.x << ", " << max.y << ", " << max.z << "}" << std::endl;
 }
 
 Quad* findQuad(const icVector3& v) {  // verified
@@ -219,31 +230,79 @@ bool insideQuad(const Quad* q, const icVector3& p) {  // verified
 // Get the vector from vector field by *bilinear interpolation*
 // Could we alter this to instead get the gradient vector from the edge field?
 icVector3 getVector(Quad* q, const icVector3& p) {
-	// x_min: min
-	// x_max: max
+	// min.x, max.x,
+	// min.y, max.y
+	// rmin, rmax
+	// cmin, cmax
+	double x0, x1, x2, x3,
+		x0p, x1p, x2p, x3p,
+		y0, y1, y2, y3,
+		y0p, y1p, y2p, y3p,
+		vc0,
+		vr0,
+		vx0, vx1, vx2, vx3,
+		vy0, vy1, vy2, vy3;
+	double vz = 0.; // Need to think about what to have for z vector
+	int r0, r1, r2, r3,
+		c0, c1, c2, c3;
 
+	// Get the vertices from the quad space
+	x0 = q->verts[0]->x;
+	y0 = q->verts[0]->y;
 
-	// The vertices
-	double x1 = q->verts[2]->x;
-	double x2 = q->verts[0]->x;
-	double y1 = q->verts[2]->y;
-	double y2 = q->verts[0]->y;
+	// Get the corresponding texels in the texture space
+	c0 = ((cmax - cmin) / (max.x - min.x)) * x0 + (((cmin * max.x) - (cmax * min.x)) / (max.x - min.x));
+	r0 = ((rmin - rmax) / (max.y - min.y)) * y0 + (((rmax * max.y) - (rmin * min.y)) / (max.y - min.y));
 
-	// The vectors
-	icVector3 v11(q->verts[2]->vx, q->verts[2]->vy, q->verts[2]->vz);
-	icVector3 v12(q->verts[1]->vx, q->verts[1]->vy, q->verts[1]->vz);
-	icVector3 v21(q->verts[3]->vx, q->verts[3]->vy, q->verts[3]->vz);
-	icVector3 v22(q->verts[0]->vx, q->verts[0]->vy, q->verts[0]->vz);
+	// Find the next texel using its vector
+	vc0 = patsvec[c0][r0][0];
+	vr0 = patsvec[c0][r0][1];
 
-	icVector3 v =
-		(x2 - p.x) / (x2 - x1) * (y2 - p.y) / (y2 - y1) * v11 +
-		(p.x - x1) / (x2 - x1) * (y2 - p.y) / (y2 - y1) * v21 +
-		(x2 - p.x) / (x2 - x1) * (p.y - y1) / (y2 - y1) * v12 +
-		(p.x - x1) / (x2 - x1) * (p.y - y1) / (y2 - y1) * v22;
+	c1 = c0 + vc0;
+	r1 = r0 + vr0;
+
+	// Find the corresponding vertex in the quad space
+	x1 = ((c1 * (max.x - min.x)) / (cmax - cmin)) - (((cmin * max.x) - (cmax * min.x)) / (cmax - cmin));
+	y1 = ((r1 * (max.y - min.y)) / (rmin - rmax)) - (((cmin * max.x) - (cmax * min.x)) / (cmax - cmin));
+
+	// Use the two vertices to calculate the vector at the vertex
+	vx0 = x1 - x0;
+	vy0 = y1 - y0;
+
+	icVector3 vxy0(vx0, vy0, vz);
+
+	// Use bilinear interpolation to find the average vector to return
+	
+	
+	//// Current position texels
+	//double pc = (cmax * (p.x - min.x)) / (max.x - min.x);
+	//double pr = -1 * (rmax * (p.y - max.y)) / (max.y - min.y);
+
+	//vx0 = ((max.x - min.x) / cmax) * patsvec[c0][r0][0] + min.x; // x position of the vector
+	//vx1 = ((max.x - min.x) / cmax) * patsvec[c1][r1][0] + min.x; // x position of the vector
+	//vx2 = ((max.x - min.x) / cmax) * patsvec[c2][r2][0] + min.x; // x position of the vector
+	//vx3 = ((max.x - min.x) / cmax) * patsvec[c3][r3][0] + min.x; // x position of the vector
+
+	//vy0 = -1 * ((max.y - min.y) / rmax) * patsvec[c0][r0][1] + max.y; // y position of the vector
+	//vy1 = -1 * ((max.y - min.y) / rmax) * patsvec[c1][r1][1] + max.y; // y position of the vector
+	//vy2 = -1 * ((max.y - min.y) / rmax) * patsvec[c2][r2][1] + max.y; // y position of the vector
+	//vy3 = -1 * ((max.y - min.y) / rmax) * patsvec[c3][r3][1] + max.y; // y position of the vector
+
+	// The vectors to use in bilinear interpolation
+	//icVector3 v11(vx2, vy2, vz);
+	//icVector3 v12(vx1, vy1, vz);
+	//icVector3 v21(vx3, vy3, vz);
+	//icVector3 v22(vx0, vy0, vz);
+
+	//icVector3 v =
+	//	(x0 - p.x) / (x0 - x2) * (y0 - p.y) / (y0 - y2) * v11 +
+	//	(p.x - x2) / (x0 - x2) * (y0 - p.y) / (y0 - y2) * v21 +
+	//	(x0 - p.x) / (x0 - x2) * (p.y - y2) / (y0 - y2) * v12 +
+	//	(p.x - x2) / (x0 - x2) * (p.y - y2) / (y0 - y2) * v22;
 
 	//normalize vector
-	//normalize(v);
-	return v;
+	normalize(vxy0);
+	return vxy0;
 }
 
 
@@ -264,228 +323,4 @@ bool singRoot(
 	double f1 = (c + d);
 	double f2 = a;
 	return quadricRoot(r0, r1, f0, f1, f2);
-}
-void extractSingularity() { // verified
-	singularities.clear();
-	// Go through faces
-	for (int i = 0; i < poly->nquads; i++) {
-		// (1)x1y2	1---0 (0)  x2y2
-		//			|	|
-		// (2)x1y1	2---3 (3) x2y1
-		icVector3 vecx1y1 = icVector3(poly->qlist[i]->verts[2]->vx, poly->qlist[i]->verts[2]->vy, poly->qlist[i]->verts[2]->vz);
-		icVector3 posx1y1 = icVector3(poly->qlist[i]->verts[2]->x, poly->qlist[i]->verts[2]->y, poly->qlist[i]->verts[2]->z);
-		icVector3 vecx2y1 = icVector3(poly->qlist[i]->verts[3]->vx, poly->qlist[i]->verts[3]->vy, poly->qlist[i]->verts[3]->vz);
-		icVector3 posx2y1 = icVector3(poly->qlist[i]->verts[3]->x, poly->qlist[i]->verts[3]->y, poly->qlist[i]->verts[3]->z);
-		icVector3 vecx2y2 = icVector3(poly->qlist[i]->verts[0]->vx, poly->qlist[i]->verts[0]->vy, poly->qlist[i]->verts[0]->vz);
-		icVector3 posx2y2 = icVector3(poly->qlist[i]->verts[0]->x, poly->qlist[i]->verts[0]->y, poly->qlist[i]->verts[0]->z);
-		icVector3 vecx1y2 = icVector3(poly->qlist[i]->verts[1]->vx, poly->qlist[i]->verts[1]->vy, poly->qlist[i]->verts[1]->vz);
-		icVector3 posx1y2 = icVector3(poly->qlist[i]->verts[1]->x, poly->qlist[i]->verts[1]->y, poly->qlist[i]->verts[1]->z);
-
-		icVector3 pt(0.);
-		double f_11 = vecx1y1.x;
-		double f_12 = vecx1y2.x;
-		double f_21 = vecx2y1.x;
-		double f_22 = vecx2y2.x;
-
-		double g_11 = vecx1y1.y;
-		double g_12 = vecx1y2.y;
-		double g_21 = vecx2y1.y;
-		double g_22 = vecx2y2.y;
-
-		double a00 = f_11;
-		double a10 = f_21 - f_11;
-		double a01 = f_12 - f_11;
-		double a11 = f_11 - f_21 - f_12 + f_22;
-		double b00 = g_11;
-		double b10 = g_21 - g_11;
-		double b01 = g_12 - g_11;
-		double b11 = g_11 - g_21 - g_12 + g_22;
-		double c00 = a11 * b00 - a00 * b11;
-		double c10 = a11 * b10 - a10 * b11;
-		double c01 = a11 * b01 - a01 * b11;
-
-		if (c01 == 0.0) {
-			std::cout << "c01 is 0: " << i << std::endl;
-			continue;
-		}
-		double div = c10 / c01;
-		double a = -a11 * div;
-		double b = a10 - a01 * div;
-		double c = a00 - (a01 + a11) * c00 / c01;
-		double s[2];
-		bool flag = quadricRoot(s[0], s[1], a, b, c);
-		if (!flag)
-			continue;
-		double t[2];
-		t[0] = -c00 / c01 - div * s[0];
-		t[1] = -c00 / c01 - div * s[1];
-
-		for (int j = 0; j < 2; j++) {
-			if (s[j] > -EPSILON && s[j] < 1 + EPSILON &&
-				t[j] > -EPSILON && t[j] < 1 + EPSILON) {
-				pt.x = s[j];
-				pt.y = t[j];
-				Singularity point;
-				point.p = pt + posx1y1;
-				singularities.push_back(point);
-				//check
-				double r0 = f_11 + pt.x * (f_21 - f_11) + pt.y * (f_12 - f_11) + pt.x * pt.y * (f_11 - f_21 - f_12 + f_22);
-				std::cout << r0 << std::endl;
-			}
-		}
-
-
-	}
-}
-
-void classifySingularity() {
-	for (auto& s : singularities) {
-
-		icVector3 posn = s.p;
-		Quad* quad = findQuad(posn);
-
-		int R[4] = { 2, 3, 0, 1 };
-		const icVector2 min(quad->verts[R[0]]->x, quad->verts[R[0]]->y);
-		const icVector2 max(quad->verts[R[2]]->x, quad->verts[R[2]]->y);
-		double len_x = max.x - min.x;
-		double len_y = max.y - min.y;
-
-		double dfdx = (-1 / len_x) * (max.y - posn.y) * quad->verts[R[0]]->vx
-			+ (1 / len_x) * (max.y - posn.y) * quad->verts[R[1]]->vx
-			+ (-1 / len_x) * (posn.y - min.y) * quad->verts[R[3]]->vx
-			+ (1 / len_x) * (posn.y - min.y) * quad->verts[R[2]]->vx;
-
-		double dfdy = (-1 / len_y) * (max.x - posn.x) * quad->verts[R[0]]->vx
-			+ (posn.x - min.x) * (-1 / len_y) * quad->verts[R[1]]->vx
-			+ (max.x - posn.x) * (1 / len_y) * quad->verts[R[3]]->vx
-			+ (posn.x - min.x) * (1 / len_y) * quad->verts[R[2]]->vx;
-
-		double dgdx = (-1 / len_x) * (max.y - posn.y) * quad->verts[R[0]]->vy
-			+ (1 / len_x) * (max.y - posn.y) * quad->verts[R[1]]->vy
-			+ (-1 / len_x) * (posn.y - min.y) * quad->verts[R[3]]->vy
-			+ (1 / len_x) * (posn.y - min.y) * quad->verts[R[2]]->vy;
-
-		double dgdy = (max.x - posn.x) * (-1 / len_y) * quad->verts[R[0]]->vy
-			+ (posn.x - min.x) * (-1 / len_y) * quad->verts[R[1]]->vy
-			+ (max.x - posn.x) * (1 / len_y) * quad->verts[R[3]]->vy
-			+ (posn.x - min.x) * (1 / len_y) * quad->verts[R[2]]->vy;
-
-		s.jacobi.entry[0][0] = dfdx;
-		s.jacobi.entry[0][1] = dfdy;
-		s.jacobi.entry[1][0] = dgdx;
-		s.jacobi.entry[1][1] = dgdy;
-
-		double tr = dfdx + dgdy;
-		double det = dfdx * dgdy - dfdy * dgdx;
-
-		double delta = tr * tr - 4 * det;
-
-		if (delta >= 0) { //?
-			double r1 = 0.5 * (tr + sqrt(delta));
-			double r2 = 0.5 * (tr - sqrt(delta));
-			if (r1 == 0 && r2 == 0)//unknown
-			{
-				s.type = -1;
-			}
-			else if (r1 >= 0 && r2 >= 0)//source
-			{
-				s.type = 0;
-				s.rgb = icVector3(1.0, 0.0, 0.0);
-			}
-			else if (r1 <= 0 && r2 <= 0) //sink
-			{
-				s.type = 1;
-				s.rgb = icVector3(0.0, 0.0, 1.0);
-			}
-			if (r1 > 0 && r2 < 0 || r1 < 0 && r2 > 0)//saddle
-			{
-				s.type = 2;
-				s.rgb = icVector3(0.0, 1.0, 0.0);
-			}
-			else {
-				s.type = -1;
-			}
-		}
-		else {
-			if (tr == 0)//center
-			{
-				s.type = 3;
-				s.rgb = icVector3(0.0, 1.0, 1.0);
-			}
-			else {
-				s.type = 4;
-				s.rgb = icVector3(1.0, 1.0, 0.0);
-			}//forus
-		}
-	}
-}
-
-
-void extractSeparatrix() { // verified, change clear() and MIN_K 
-	for (auto& s : singularities) {
-		if (s.type == 2)//saddle
-		{
-			double a = s.jacobi.entry[0][0];
-			double b = s.jacobi.entry[0][1];
-			double c = s.jacobi.entry[1][0];
-			double d = s.jacobi.entry[1][1];
-
-			double Yd = (a + d) / 2;
-			double Yr = (c - b) / 2;
-			double Ys = std::sqrt((a - d) * (a - d) + (b + c) * (b + c)) / 2;
-			double theta = std::atan2(b + c, a - d);
-			double phi = std::atan(Yr / Ys);
-			double a_cos = std::cos(theta / 2);
-			double b_sin = -std::sin(theta / 2);
-			double c_sin = std::sin(theta / 2);
-			double d_cos = std::cos(theta / 2);
-			double a_sin_phi = std::sqrt(std::sin(phi + M_PI / 4));
-			double a_cos_phi = std::sqrt(std::cos(phi + M_PI / 4));
-			icVector3 maj_v(0.0), min_v(0.0);
-			maj_v.x = a_cos * (a_sin_phi + a_cos_phi) + b_sin * (a_sin_phi - a_cos_phi);
-			maj_v.y = c_sin * (a_sin_phi + a_cos_phi) + d_cos * (a_sin_phi - a_cos_phi);
-			min_v.x = a_cos * (a_sin_phi - a_cos_phi) + b_sin * (a_sin_phi + a_cos_phi);
-			min_v.x = c_sin * (a_sin_phi - a_cos_phi) + d_cos * (a_sin_phi + a_cos_phi);
-			double k = MIN_K / maj_v.length();
-
-			//outgoing p + kv
-			POLYLINE separatrix;
-			streamlineFB(separatrix, s.p + k * maj_v, STEP);
-			separatrix.m_rgb = icVector3(1.0, 0.0, 0.0);
-			polylines.push_back(separatrix);
-			//outgoing p-kv;
-			separatrix.m_vertices.clear();
-			streamlineFB(separatrix, s.p - k * maj_v, STEP);
-			separatrix.m_rgb = icVector3(1.0, 0.0, 0.0);
-			polylines.push_back(separatrix);
-			//incoming p + kw;
-			k = MIN_K / min_v.length();
-			separatrix.m_vertices.clear();
-			streamlineFB(separatrix, s.p + k * min_v, STEP, false);
-			separatrix.m_rgb = icVector3(0.0, 0.0, 1.0);
-			polylines.push_back(separatrix);
-			//incoming p - kw;
-			separatrix.m_vertices.clear();
-			streamlineFB(separatrix, s.p - k * min_v, STEP, false);
-			separatrix.m_rgb = icVector3(0.0, 0.0, 1.0);
-			polylines.push_back(separatrix);
-
-		}
-	}
-}
-
-
-void display_singularities() {  // verified
-
-	CHECK_GL_ERROR();
-	for (auto& sing : singularities) {
-		GLUquadric* quadric = gluNewQuadric();
-		glPushMatrix();
-		glTranslated(sing.p.x, sing.p.y, sing.p.z);
-		glColor3f(sing.rgb.x, sing.rgb.y, sing.rgb.z);
-		gluSphere(quadric, 0.1, 16, 16);
-		glPopMatrix();
-		gluDeleteQuadric(quadric);
-	}
-	glDisable(GL_BLEND);
 }
