@@ -161,10 +161,10 @@ void streamline(POLYLINE& line, const icVector3& seed, const double& step) {  //
 void drawstreamlines() {
 	POLYLINE line;
 	findMinMaxField(min, max);			// Find the minimum and maximum coordinates
-	for (int i = -1; i < 1; i++) {	// Display streamlines
+	for (int i = -10; i < 10; i++) {	// Display streamlines
 		line.m_vertices.clear();
-		streamline(line, icVector3(i, i, 0), 0.1);	// d2 was 0.001 but was taking too long to render
-		line.m_rgb = icVector3(1.0, 0.0, 0.0);			// Streamlines are white for now
+		streamline(line, icVector3(i, i, 0), 0.001);	// d2 was 0.001 but was taking too long to render
+		line.m_rgb = icVector3(1.0, 1.0, 1.0);			// Streamlines are white for now
 		polylines.push_back(line);						// Add line to polylines
 		printf("streamline drawn\n");
 	}
@@ -226,6 +226,35 @@ bool insideQuad(const Quad* q, const icVector3& p) {  // verified
 	}
 }
 
+// Get the c and r values at a given vertex x,y
+icVector2 quadToTexture(double x, double y) {
+
+	double c = ((cmax - cmin) / (max.x - min.x)) * x + (((cmin * max.x) - (cmax * min.x)) / (max.x - min.x));
+	double r = ((rmin - rmax) / (max.y - min.y)) * y + (((rmax * max.y) - (rmin * min.y)) / (max.y - min.y));
+
+	return icVector2(c, r);
+}
+
+// Find the next texel from c,r vector
+icVector2 getNextTexel(double c, double r) {
+
+	double vc = patsvec[(int)c][(int)r][0];
+	double vr = patsvec[(int)c][(int)r][1];
+
+	double cprime = c + vc;
+	double rprime = r + vr;
+
+	return icVector2(cprime, rprime);
+}
+
+// Get the x and y values from a given texel c, r
+icVector2 textureToQuad(double r, double c) {
+
+	double x = ((c * (max.x - min.x)) / (cmax - cmin)) - (((cmin * max.x) - (cmax * min.x)) / (cmax - cmin));
+	double y = ((r * (max.y - min.y)) / (rmin - rmax)) - (((cmin * max.x) - (cmax * min.x)) / (cmax - cmin));
+
+	return icVector2(x, y);
+}
 
 // Get the vector from vector field by *bilinear interpolation*
 // Could we alter this to instead get the gradient vector from the edge field?
@@ -238,71 +267,68 @@ icVector3 getVector(Quad* q, const icVector3& p) {
 		x0p, x1p, x2p, x3p,
 		y0, y1, y2, y3,
 		y0p, y1p, y2p, y3p,
-		vc0,
-		vr0,
+		vc0, vc1, vc2, vc3,
+		vr0, vr1, vr2, vr3,
 		vx0, vx1, vx2, vx3,
 		vy0, vy1, vy2, vy3;
+
 	double vz = 0.; // Need to think about what to have for z vector
+
 	int r0, r1, r2, r3,
-		c0, c1, c2, c3;
+		r0p, r1p, r2p, r3p,
+		c0, c1, c2, c3,
+		c0p, c1p, c2p, c3p;
 
 	// Get the vertices from the quad space
 	x0 = q->verts[0]->x;
 	y0 = q->verts[0]->y;
 
+	x1 = q->verts[1]->x;
+	y1 = q->verts[1]->y;
+
+	x2 = q->verts[2]->x;
+	y2 = q->verts[2]->y;
+
+	x3 = q->verts[3]->x;
+	y3 = q->verts[3]->y;
+
 	// Get the corresponding texels in the texture space
-	c0 = ((cmax - cmin) / (max.x - min.x)) * x0 + (((cmin * max.x) - (cmax * min.x)) / (max.x - min.x));
-	r0 = ((rmin - rmax) / (max.y - min.y)) * y0 + (((rmax * max.y) - (rmin * min.y)) / (max.y - min.y));
+	
+	icVector2 cr0 = quadToTexture(x0, y0);
+	icVector2 cr1 = quadToTexture(x1, y1);
+	icVector2 cr2 = quadToTexture(x2, y2);
+	icVector2 cr3 = quadToTexture(x3, y3);
 
 	// Find the next texel using its vector
-	vc0 = patsvec[c0][r0][0];
-	vr0 = patsvec[c0][r0][1];
 
-	c1 = c0 + vc0;
-	r1 = r0 + vr0;
+	icVector2 cr0p = getNextTexel(cr0.x, cr0.y);
+	icVector2 cr1p = getNextTexel(cr1.x, cr1.y);
+	icVector2 cr2p = getNextTexel(cr2.x, cr2.y);
+	icVector2 cr3p = getNextTexel(cr3.x, cr3.y);
 
 	// Find the corresponding vertex in the quad space
-	x1 = ((c1 * (max.x - min.x)) / (cmax - cmin)) - (((cmin * max.x) - (cmax * min.x)) / (cmax - cmin));
-	y1 = ((r1 * (max.y - min.y)) / (rmin - rmax)) - (((cmin * max.x) - (cmax * min.x)) / (cmax - cmin));
+	icVector2 xy0p = textureToQuad(cr0p.x, cr0p.y);
+	icVector2 xy1p = textureToQuad(cr1p.x, cr1p.y);
+	icVector2 xy2p = textureToQuad(cr2p.x, cr2p.y);
+	icVector2 xy3p = textureToQuad(cr3p.x, cr3p.y);
 
 	// Use the two vertices to calculate the vector at the vertex
-	vx0 = x1 - x0;
-	vy0 = y1 - y0;
-
-	icVector3 vxy0(vx0, vy0, vz);
+	icVector3 vxy0((xy0p.x - x0), (xy0p.y - y0), vz);
+	icVector3 vxy1((xy1p.x - x1), (xy1p.y - y1), vz);
+	icVector3 vxy2((xy2p.x - x2), (xy2p.y - y2), vz);
+	icVector3 vxy3((xy3p.x - x3), (xy3p.y - y3), vz);
 
 	// Use bilinear interpolation to find the average vector to return
-	
-	
-	//// Current position texels
-	//double pc = (cmax * (p.x - min.x)) / (max.x - min.x);
-	//double pr = -1 * (rmax * (p.y - max.y)) / (max.y - min.y);
 
-	//vx0 = ((max.x - min.x) / cmax) * patsvec[c0][r0][0] + min.x; // x position of the vector
-	//vx1 = ((max.x - min.x) / cmax) * patsvec[c1][r1][0] + min.x; // x position of the vector
-	//vx2 = ((max.x - min.x) / cmax) * patsvec[c2][r2][0] + min.x; // x position of the vector
-	//vx3 = ((max.x - min.x) / cmax) * patsvec[c3][r3][0] + min.x; // x position of the vector
-
-	//vy0 = -1 * ((max.y - min.y) / rmax) * patsvec[c0][r0][1] + max.y; // y position of the vector
-	//vy1 = -1 * ((max.y - min.y) / rmax) * patsvec[c1][r1][1] + max.y; // y position of the vector
-	//vy2 = -1 * ((max.y - min.y) / rmax) * patsvec[c2][r2][1] + max.y; // y position of the vector
-	//vy3 = -1 * ((max.y - min.y) / rmax) * patsvec[c3][r3][1] + max.y; // y position of the vector
-
-	// The vectors to use in bilinear interpolation
-	//icVector3 v11(vx2, vy2, vz);
-	//icVector3 v12(vx1, vy1, vz);
-	//icVector3 v21(vx3, vy3, vz);
-	//icVector3 v22(vx0, vy0, vz);
-
-	//icVector3 v =
-	//	(x0 - p.x) / (x0 - x2) * (y0 - p.y) / (y0 - y2) * v11 +
-	//	(p.x - x2) / (x0 - x2) * (y0 - p.y) / (y0 - y2) * v21 +
-	//	(x0 - p.x) / (x0 - x2) * (p.y - y2) / (y0 - y2) * v12 +
-	//	(p.x - x2) / (x0 - x2) * (p.y - y2) / (y0 - y2) * v22;
+	icVector3 v =
+		(x0 - p.x) / (x0 - x2) * (y0 - p.y) / (y0 - y2) * vxy2 +
+		(p.x - x2) / (x0 - x2) * (y0 - p.y) / (y0 - y2) * vxy3 +
+		(x0 - p.x) / (x0 - x2) * (p.y - y2) / (y0 - y2) * vxy1 +
+		(p.x - x2) / (x0 - x2) * (p.y - y2) / (y0 - y2) * vxy0;
 
 	//normalize vector
-	normalize(vxy0);
-	return vxy0;
+	//normalize(v);
+	return v;
 }
 
 
