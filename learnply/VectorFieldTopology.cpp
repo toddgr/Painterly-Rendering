@@ -9,10 +9,10 @@ constexpr auto STEP = 0.005;
 constexpr auto MIN_K = 0.05;
 
 // min and max texture coords
-int rmin = NPN;
+int rmin = NPN - 1;
 int rmax = 0;
 int cmin = 0;
-int cmax = NPN; 
+int cmax = NPN - 1; 
 
 extern Polyhedron* poly;
 extern std::vector<POLYLINE> polylines;
@@ -125,6 +125,7 @@ void streamlineFB(POLYLINE& line, const icVector3& seed, const double& step, boo
 	if (!forward) {
 		coef = -1.0;
 	}
+	// Fix: infiniteloop when seed.x = 1?
 	while (quad != nullptr) {
 		icVector3 currVec = getVector(quad, currPos);	// Get the Vector
 		//v:=0											// Could this be replaced with the edge field?
@@ -163,7 +164,7 @@ void drawstreamlines() {
 	findMinMaxField(min, max);			// Find the minimum and maximum coordinates
 	for (int i = -10; i < 10; i++) {	// Display streamlines
 		line.m_vertices.clear();
-		streamline(line, icVector3(i, i, 0), 0.001);	// d2 was 0.001 but was taking too long to render
+		streamline(line, icVector3(i, 0, 0), 0.001);	// d2 was 0.001 but was taking too long to render
 		line.m_rgb = icVector3(1.0, 1.0, 1.0);			// Streamlines are white for now
 		polylines.push_back(line);						// Add line to polylines
 		printf("streamline drawn\n");
@@ -237,9 +238,11 @@ icVector2 quadToTexture(double x, double y) {
 
 // Find the next texel from c,r vector
 icVector2 getNextTexel(double c, double r) {
+	int ir = (int)round(r);
+	int ic = (int)round(c);
 
-	double vc = patsvec[(int)c][(int)r][0];
-	double vr = patsvec[(int)c][(int)r][1];
+	double vc = patsvec[ic][ir][0];
+	double vr = patsvec[ic][ir][1];
 
 	double cprime = c + vc;
 	double rprime = r + vr;
@@ -251,7 +254,7 @@ icVector2 getNextTexel(double c, double r) {
 icVector2 textureToQuad(double r, double c) {
 
 	double x = ((c * (max.x - min.x)) / (cmax - cmin)) - (((cmin * max.x) - (cmax * min.x)) / (cmax - cmin));
-	double y = ((r * (max.y - min.y)) / (rmin - rmax)) - (((cmin * max.x) - (cmax * min.x)) / (cmax - cmin));
+	double y = ((r * (max.y - min.y)) / (rmin - rmax)) - (((rmax * max.y) - (rmin * min.y)) / (rmin - rmax));
 
 	return icVector2(x, y);
 }
@@ -318,6 +321,9 @@ icVector3 getVector(Quad* q, const icVector3& p) {
 	icVector3 vxy2((xy2p.x - x2), (xy2p.y - y2), vz);
 	icVector3 vxy3((xy3p.x - x3), (xy3p.y - y3), vz);
 
+	x2 = vxy2.x;
+	y2 = vxy2.y;
+
 	// Use bilinear interpolation to find the average vector to return
 
 	icVector3 v =
@@ -327,8 +333,8 @@ icVector3 getVector(Quad* q, const icVector3& p) {
 		(p.x - x2) / (x0 - x2) * (p.y - y2) / (y0 - y2) * vxy0;
 
 	//normalize vector
-	//normalize(v);
-	return v;
+	//normalize(vxy0);
+	return vxy0;
 }
 
 
