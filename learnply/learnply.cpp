@@ -86,7 +86,7 @@ Main program.
 int main(int argc, char* argv[])
 {
 	/*load mesh from ply file*/
-	FILE* this_file = fopen("../data/vector_data/v1.ply", "r");
+	FILE* this_file = fopen("../data/vector_data/v3.ply", "r");
 	poly = new Polyhedron(this_file);
 	fclose(this_file);
 
@@ -482,6 +482,20 @@ void keyboard(unsigned char key, int x, int y) {
 		glutPostRedisplay();
 	}
 	break;
+
+	case '2':
+	{
+		display_mode = 2; // Display mode for streamlines over edge field
+		printf("Displaying streamlines.\n");
+
+		// Need to create edge field first
+		initSobel();
+		sobelFilter(fname);
+
+		drawstreamlines();
+
+		glutPostRedisplay();
+	}
 
 	case 'r':
 		mat_ident(rotmat);

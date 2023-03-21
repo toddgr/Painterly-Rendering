@@ -59,7 +59,7 @@ void display_polyline(std::vector<POLYLINE>& polylines) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	for (auto& polyline : polylines) {
-		glLineWidth(polyline.m_weight);
+		glLineWidth(polyline.m_weight * 2);
 		glColor3f(polyline.m_rgb.entry[0], polyline.m_rgb.entry[1], polyline.m_rgb.entry[2]);
 		glBegin(GL_LINE_STRIP);
 		for (auto it = polyline.m_vertices.begin(); it != polyline.m_vertices.end(); it++) {

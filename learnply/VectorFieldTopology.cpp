@@ -164,8 +164,8 @@ void drawstreamlines() {
 	findMinMaxField(min, max);			// Find the minimum and maximum coordinates
 	for (int i = -10; i < 10; i++) {	// Display streamlines
 		line.m_vertices.clear();
-		streamline(line, icVector3(i, 0, 0), 0.001);	// d2 was 0.001 but was taking too long to render
-		line.m_rgb = icVector3(1.0, 1.0, 1.0);			// Streamlines are white for now
+		streamline(line, icVector3(i, 0, 0), 0.005);	// d2 was 0.001 but was taking too long to render
+		line.m_rgb = icVector3(0.0, 1.0, 0.0);			// Streamlines are white for now
 		polylines.push_back(line);						// Add line to polylines
 		printf("streamline drawn\n");
 	}
@@ -228,16 +228,18 @@ bool insideQuad(const Quad* q, const icVector3& p) {  // verified
 }
 
 // Get the c and r values at a given vertex x,y
-icVector2 quadToTexture(double x, double y) {
+icVector3 quadToTexture(double x, double y, double z) {
 
-	double c = ((cmax - cmin) / (max.x - min.x)) * x + (((cmin * max.x) - (cmax * min.x)) / (max.x - min.x));
-	double r = ((rmin - rmax) / (max.y - min.y)) * y + (((rmax * max.y) - (rmin * min.y)) / (max.y - min.y));
+	double c = ((cmax - cmin) / (max.x - min.x)) * x + 
+		(((cmin * max.x) - (cmax * min.x)) / (max.x - min.x));
+	double r = ((rmax - rmin) / (min.y - max.y)) * y + 
+		(((max.y * rmax) - (min.y * rmin)) / (min.y - max.y));
 
-	return icVector2(c, r);
+	return icVector3(c, r, z);
 }
 
 // Find the next texel from c,r vector
-icVector2 getNextTexel(double c, double r) {
+icVector3 getNextTexel(double c, double r, double w) {
 	int ir = (int)round(r);
 	int ic = (int)round(c);
 
@@ -247,16 +249,17 @@ icVector2 getNextTexel(double c, double r) {
 	double cprime = c + vc;
 	double rprime = r + vr;
 
-	return icVector2(cprime, rprime);
+	return icVector3(cprime, rprime, w);
 }
 
 // Get the x and y values from a given texel c, r
-icVector2 textureToQuad(double r, double c) {
+icVector3 textureToQuad(double r, double c, double w) {
 
 	double x = ((c * (max.x - min.x)) / (cmax - cmin)) - (((cmin * max.x) - (cmax * min.x)) / (cmax - cmin));
-	double y = ((r * (max.y - min.y)) / (rmin - rmax)) - (((rmax * max.y) - (rmin * min.y)) / (rmin - rmax));
+	double y = ((min.y - max.y) / (rmin - rmax) * r) +
+		(((rmax * max.y) - (rmin * min.y)) / (rmin - rmax));
 
-	return icVector2(x, y);
+	return icVector3(x, y, w);
 }
 
 // Get the vector from vector field by *bilinear interpolation*
@@ -286,34 +289,34 @@ icVector3 getVector(Quad* q, const icVector3& p) {
 	x0 = q->verts[0]->x;
 	y0 = q->verts[0]->y;
 
-	x1 = q->verts[1]->x;
-	y1 = q->verts[1]->y;
-
 	x2 = q->verts[2]->x;
 	y2 = q->verts[2]->y;
+
+	x1 = q->verts[1]->x;
+	y1 = q->verts[1]->y;
 
 	x3 = q->verts[3]->x;
 	y3 = q->verts[3]->y;
 
 	// Get the corresponding texels in the texture space
 	
-	icVector2 cr0 = quadToTexture(x0, y0);
-	icVector2 cr1 = quadToTexture(x1, y1);
-	icVector2 cr2 = quadToTexture(x2, y2);
-	icVector2 cr3 = quadToTexture(x3, y3);
+	icVector3 cr0 = quadToTexture(x0, y0, vz);
+	icVector3 cr1 = quadToTexture(x1, y1, vz);
+	icVector3 cr2 = quadToTexture(x2, y2, vz);
+	icVector3 cr3 = quadToTexture(x3, y3, vz);
 
 	// Find the next texel using its vector
 
-	icVector2 cr0p = getNextTexel(cr0.x, cr0.y);
-	icVector2 cr1p = getNextTexel(cr1.x, cr1.y);
-	icVector2 cr2p = getNextTexel(cr2.x, cr2.y);
-	icVector2 cr3p = getNextTexel(cr3.x, cr3.y);
+	icVector3 cr0p = getNextTexel(cr0.x, cr0.y, vz);
+	icVector3 cr1p = getNextTexel(cr1.x, cr1.y, vz);
+	icVector3 cr2p = getNextTexel(cr2.x, cr2.y, vz);
+	icVector3 cr3p = getNextTexel(cr3.x, cr3.y, vz);
 
 	// Find the corresponding vertex in the quad space
-	icVector2 xy0p = textureToQuad(cr0p.x, cr0p.y);
-	icVector2 xy1p = textureToQuad(cr1p.x, cr1p.y);
-	icVector2 xy2p = textureToQuad(cr2p.x, cr2p.y);
-	icVector2 xy3p = textureToQuad(cr3p.x, cr3p.y);
+	icVector3 xy0p = textureToQuad(cr0p.x, cr0p.y, vz);
+	icVector3 xy1p = textureToQuad(cr1p.x, cr1p.y, vz);
+	icVector3 xy2p = textureToQuad(cr2p.x, cr2p.y, vz);
+	icVector3 xy3p = textureToQuad(cr3p.x, cr3p.y, vz);
 
 	// Use the two vertices to calculate the vector at the vertex
 	icVector3 vxy0((xy0p.x - x0), (xy0p.y - y0), vz);
@@ -334,7 +337,7 @@ icVector3 getVector(Quad* q, const icVector3& p) {
 
 	//normalize vector
 	//normalize(vxy0);
-	return vxy0;
+	return v;
 }
 
 
