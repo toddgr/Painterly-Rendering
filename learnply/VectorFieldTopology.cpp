@@ -9,10 +9,10 @@ constexpr auto STEP = 0.005;
 constexpr auto MIN_K = 0.05;
 
 // min and max texture coords
-int rmin = NPN - 1;
+int rmin = NPN;
 int rmax = 0;
 int cmin = 0;
-int cmax = NPN - 1; 
+int cmax = NPN; 
 
 extern Polyhedron* poly;
 extern std::vector<POLYLINE> polylines;
@@ -125,7 +125,7 @@ void streamlineFB(POLYLINE& line, const icVector3& seed, const double& step, boo
 	if (!forward) {
 		coef = -1.0;
 	}
-	// Fix: infiniteloop when seed.x = 1?
+
 	while (quad != nullptr) {
 		icVector3 currVec = getVector(quad, currPos);	// Get the Vector
 		//v:=0											// Could this be replaced with the edge field?
@@ -147,7 +147,7 @@ void streamlineFB(POLYLINE& line, const icVector3& seed, const double& step, boo
 		quad = nextQuad;
 		currPos = nextPos;
 		line.m_vertices.push_back(currPos);
-	}
+ 	}
 }
 
 
@@ -164,7 +164,7 @@ void drawstreamlines() {
 	findMinMaxField(min, max);			// Find the minimum and maximum coordinates
 	for (int i = -10; i < 10; i++) {	// Display streamlines
 		line.m_vertices.clear();
-		streamline(line, icVector3(i, 0, 0), 0.005);	// d2 was 0.001 but was taking too long to render
+		streamline(line, icVector3(i, i, 0), 0.0025);	// d2 was 0.001 but was taking too long to render
 		line.m_rgb = icVector3(0.0, 1.0, 0.0);			// Streamlines are white for now
 		polylines.push_back(line);						// Add line to polylines
 		printf("streamline drawn\n");
@@ -230,7 +230,7 @@ bool insideQuad(const Quad* q, const icVector3& p) {  // verified
 // Get the c and r values at a given vertex x,y
 icVector3 quadToTexture(double x, double y, double z) {
 
-	double c = ((cmax - cmin) / (max.x - min.x)) * x + 
+	double c = (((cmax - cmin) / (max.x - min.x)) * x) +
 		(((cmin * max.x) - (cmax * min.x)) / (max.x - min.x));
 	double r = ((rmax - rmin) / (min.y - max.y)) * y + 
 		(((max.y * rmax) - (min.y * rmin)) / (min.y - max.y));
@@ -240,8 +240,8 @@ icVector3 quadToTexture(double x, double y, double z) {
 
 // Find the next texel from c,r vector
 icVector3 getNextTexel(double c, double r, double w) {
-	int ir = (int)round(r);
-	int ic = (int)round(c);
+	int ir = (int)r;
+	int ic = (int)c;
 
 	double vc = patsvec[ic][ir][0];
 	double vr = patsvec[ic][ir][1];
@@ -255,9 +255,10 @@ icVector3 getNextTexel(double c, double r, double w) {
 // Get the x and y values from a given texel c, r
 icVector3 textureToQuad(double r, double c, double w) {
 
-	double x = ((c * (max.x - min.x)) / (cmax - cmin)) - (((cmin * max.x) - (cmax * min.x)) / (cmax - cmin));
-	double y = ((min.y - max.y) / (rmin - rmax) * r) +
-		(((rmax * max.y) - (rmin * min.y)) / (rmin - rmax));
+	double x = (((c * (max.x - min.x)) / (cmax - cmin))) -
+		(((cmin * max.x) - (cmax * min.x)) / (cmax - cmin));
+	double y = (r * ((min.y - max.y) / (rmax - rmin))) +
+		(((rmax * max.y) - (rmin * min.y)) / (rmax - rmin));
 
 	return icVector3(x, y, w);
 }
@@ -336,7 +337,7 @@ icVector3 getVector(Quad* q, const icVector3& p) {
 		(p.x - x2) / (x0 - x2) * (p.y - y2) / (y0 - y2) * vxy0;
 
 	//normalize vector
-	//normalize(vxy0);
+	//normalize(v);
 	return v;
 }
 
