@@ -131,7 +131,6 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="IBFV.cpp" />
     <ClCompile Include="learnply.cpp" />
     <ClCompile Include="ply.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
@@ -156,7 +155,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="glError.h" />
-    <ClInclude Include="IBFV.h" />
     <ClInclude Include="icMatrix.H" />
     <ClInclude Include="icVector.H" />
     <ClInclude Include="ply_io.h" />

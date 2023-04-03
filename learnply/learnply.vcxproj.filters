@@ -39,9 +39,6 @@
     <ClCompile Include="Polyline.cpp">
       <Filter>Polyline</Filter>
     </ClCompile>
-    <ClCompile Include="IBFV.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="VectorFieldTopology.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -79,9 +76,6 @@
     </ClInclude>
     <ClInclude Include="Polyline.h">
       <Filter>Polyline</Filter>
-    </ClInclude>
-    <ClInclude Include="IBFV.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="VectorFieldTopology.h">
       <Filter>Header Files</Filter>
