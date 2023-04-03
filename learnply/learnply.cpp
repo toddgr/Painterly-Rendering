@@ -35,19 +35,17 @@ int win_width = 1024;
 int win_height = 1024;
 const int view_mode = 0;		// 0 = orthogonal, 1=perspective
 const double radius_factor = 0.9;
-const std::string fname = "../data/image/teddysmall.ppm";
+const std::string fname = "../data/image/bysmall.ppm";
 GLubyte patsvec[NPN][NPN][2];	// image after filter is applied - edge field?
 // add a fifth and sixth element to store the vx and vy elements?
 
 /*
-Use keys 1 to 0 to switch among different display modes.
-Each display mode can be designed to show one type
-visualization result.
-
-Predefined ones:
+Predefined display modes:
 display mode 1: solid rendering
 display mode 2: show wireframes
-display mode 3: render each quad with colors of vertices
+display mode 3: render original image
+display mode 4: edge field for streamlines
+display mode 6: edge field
 */
 int display_mode = 1;
 
@@ -174,7 +172,7 @@ Update the scene
 void set_scene(GLenum mode, Polyhedron* poly)
 {
 	// Commented out translations and scaling to ensure the polyhedron takes up exactly the size of the window.
-	//glTranslatef(translation[0], translation[1], -3.0);
+	//glTranslatef(translation[0], translation[1], -10.0);
 
 	/*multiply rotmat to current mat*/
 	{
@@ -189,7 +187,7 @@ void set_scene(GLenum mode, Polyhedron* poly)
 		glMultMatrixf(mat);
 	}
 
-	//glScalef(0.9 / poly->radius, 0.9 / poly->radius, 0.9 / poly->radius);
+	glScalef(1.25 / poly->radius, 1.25 / poly->radius, 1.25 / poly->radius);
 	//glTranslatef(-poly->center.entry[0], -poly->center.entry[1], -poly->center.entry[2]);
 }
 
