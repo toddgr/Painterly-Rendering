@@ -470,7 +470,7 @@ void keyboard(unsigned char key, int x, int y) {
 
 		drawstreamlines();
 
-		glutPostRedisplay();
+		//glutPostRedisplay();
 	}
 	break;
 	case 'e':  // Edge field - Sobel filter implementation
