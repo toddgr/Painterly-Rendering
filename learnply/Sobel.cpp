@@ -242,22 +242,6 @@ void sobelFilter(const std::string& fname) {
 
 }
 
-void createEdgeFieldFromSobel() { // should not be void forever. Take in image and poly file?
-	// Returns an edge field
-	GLubyte edgefield[NPN][NPN][2];	// store vx, vy value per... texel? pixel? What type should this have
-
-	// do all of the things that the original sobel filter does, 
-	// but calculate and store each of the vx and vy values for each 9opixel? texel?) that are used in displaysobel
-
-	// but instead of going to display the sobel filter, we assign the values to the quad directly
-	// no texture nonsense
-
-
-
-	
-	// return edge field
-}
-
 void initImage()
 {
 	pixels = (unsigned char*)malloc(sizeof(unsigned char) * win_width * win_height * 3);
