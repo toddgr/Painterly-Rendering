@@ -33,6 +33,8 @@ bool isZero(double x) {
 
 
 bool sinp2Boundary(icVector3& currPos, const icVector3& min, const icVector3& max) {
+	// Checks if the current position is within the boundary
+
 	bool hitBoundary = false;
 	if (currPos.x < min.x) {
 		hitBoundary = true;
@@ -128,7 +130,6 @@ void streamlineFB(POLYLINE& line, const icVector3& seed, const double& step, boo
 
 	while (quad != nullptr) {
 		icVector3 currVec = getVector(quad, currPos);	// Get the Vector
-		//v:=0											
 		if (currVec.length() < EPSILON) {				// Control the length of the vector
 			break;
 		}
@@ -151,9 +152,12 @@ void streamlineFB(POLYLINE& line, const icVector3& seed, const double& step, boo
 }
 
 
-void streamline(POLYLINE& line, const icVector3& seed, const double& step) {  // verified
+void streamline(POLYLINE& line, const icVector3& seed, const double& step) {
+	// Create streamline forward, backward from seed position
+	std::cout << "streamline forward" << std::endl;
 	streamlineFB(line, seed, step);				// Create streamline forward
 	POLYLINE line_back;
+	std::cout << "streamline backward" << std::endl;
 	streamlineFB(line_back, seed, step, false);	// Create streamline backward
 	line.merge(line_back);						// Merge the two together
 }
@@ -162,15 +166,15 @@ void streamline(POLYLINE& line, const icVector3& seed, const double& step) {  //
 void drawstreamlines() {
 	POLYLINE line;
 	findMinMaxField(min, max);			// Find the minimum and maximum coordinates
-	//for (int i = -10; i < -3; i++) {	// Display streamlines
-	//	line.m_vertices.clear();
-	//	streamline(line, icVector3(i, i, 0), 0.0025);	// d2 was 0.001 but was taking too long to render
-	//	line.m_rgb = icVector3(1.0, 0.0, 0.0);			// Streamlines are white for now
-	//	polylines.push_back(line);						// Add line to polylines
-	//	printf("streamline drawn\n");
-	//}
+	for (int i = -10; i < 0; i++) {	// Display streamlines
+		line.m_vertices.clear();
+		streamline(line, icVector3(i, i, 0), 0.0025);	// d2 was 0.001 but was taking too long to render
+		line.m_rgb = icVector3(1.0, 0.0, 0.0);			// Streamlines are white for now
+		polylines.push_back(line);						// Add line to polylines
+		printf("streamline drawn\n");
+	}
 
-	for (int i = 6; i < 10; i++) {	// Display streamlines
+	for (int i = 0; i < 10; i++) {	// Display streamlines
 		line.m_vertices.clear();
 		streamline(line, icVector3(i, i, 0), 0.0025);	// d2 was 0.001 but was taking too long to render
 		line.m_rgb = icVector3(0.0, 1.0, 0.0);			// Streamlines are white for now
