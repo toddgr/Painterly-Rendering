@@ -1,6 +1,7 @@
 #include "VectorFieldTopology.h"
 #include "Sobel.h"
 #include <iostream>
+
 #define M_PI 3.14159265358979323846
 #define NPN 256 // for sobel-- need to change this later
 
@@ -16,7 +17,6 @@ int cmax = NPN;
 
 extern Polyhedron* poly;
 extern std::vector<POLYLINE> polylines;
-extern std::list<Singularity> singularities;
 extern int win_width;
 extern GLubyte patsvec[NPN][NPN][2];
 
@@ -183,7 +183,7 @@ void drawstreamlines() {
 	}
 }
 
-// Find minimum and maximum coordinate
+// Find minimum and maximum coordinates for the polyhedron
 void findMinMaxField(icVector3& min, icVector3& max) {
 	min.x = poly->vlist[0]->x;
 	min.y = poly->vlist[0]->y;
@@ -215,7 +215,8 @@ void findMinMaxField(icVector3& min, icVector3& max) {
 	std::cout << "max: {" << max.x << ", " << max.y << ", " << max.z << "}" << std::endl;
 }
 
-Quad* findQuad(const icVector3& v) {  // verified
+Quad* findQuad(const icVector3& v) {
+	// Find the next quad
 	for (int i = 0; i < poly->nquads; i++) {
 		Quad* qtemp = poly->qlist[i];
 		if (insideQuad(qtemp, v))
@@ -224,8 +225,8 @@ Quad* findQuad(const icVector3& v) {  // verified
 	return nullptr;
 }
 
-// Inside quad
-bool insideQuad(const Quad* q, const icVector3& p) {  // verified
+bool insideQuad(const Quad* q, const icVector3& p) {
+	// Check if the point is inside the quad
 	double v0x = q->verts[2]->x;
 	double v0y = q->verts[2]->y;
 	double v2x = q->verts[0]->x;
@@ -353,22 +354,3 @@ icVector3 getVector(Quad* q, const icVector3& p) {
 	return v;
 }
 
-
-bool quadricRoot(double& r0, double& r1, const double& a, const double& b, const double& c) { //verified
-	float m = (b * b) - 4 * a * c;
-	if (m < 0) {
-		return false;
-	} 
-	r0 = (-b - std::sqrt(m)) / (2 * a);
-	r1 = (-b + std::sqrt(m)) / (2 * a);
-	return true;
-}
-
-bool singRoot(
-	double& r0, double& r1,
-	const double& a, const double& b, const double& c, const double& d) { // verified
-	double f0 = b - a - (c + d);
-	double f1 = (c + d);
-	double f2 = a;
-	return quadricRoot(r0, r1, f0, f1, f2);
-}
