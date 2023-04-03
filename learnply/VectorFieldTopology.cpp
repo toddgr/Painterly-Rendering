@@ -32,7 +32,7 @@ bool isZero(double x) {
 }
 
 
-bool sinp2Boundary(icVector3& currPos, const icVector3& min, const icVector3& max) {
+bool isnp2Boundary(icVector3& currPos, const icVector3& min, const icVector3& max) {
 	// Checks if the current position is within the boundary
 
 	bool hitBoundary = false;
@@ -63,7 +63,8 @@ void streamlineTrace(Quad*& nextQuad, Quad* currQuad, icVector3 currPos, icVecto
 	bool insideQuad = false;
 	while (!insideQuad) {
 
-		// Is outside the field
+		// Is the current position outside the field?
+		// if yes, the next quad is null
 		if (currPos.x < min.x || currPos.x > max.x ||
 			currPos.y < min.y || currPos.y > max.y) {
 			nextQuad = nullptr;
@@ -72,17 +73,22 @@ void streamlineTrace(Quad*& nextQuad, Quad* currQuad, icVector3 currPos, icVecto
 
 		double t_ = INFINITY;
 		Quad* nextQuad_ = nullptr;
-		for (int e_i = 0; e_i < 4; e_i++) { // For each of the quad edges
-			Edge* edge = currQuad->edges[e_i];
+		// For each of the quad edges:
+		for (int e_i = 0; e_i < 4; e_i++) {		
+			Edge* edge = currQuad->edges[e_i];	
 			Vertex* v0 = edge->verts[0];
 			Vertex* v1 = edge->verts[1];
 			double t_temp;
+
+			// If the size of the edge's x values is significantly small
 			if (std::abs(v0->x - v1->x) < EPSILON) {
+				// Use x values
 				t_temp = (v0->x - currPos.x) / currVec.x;
 			}
-			else {
+			else { // Use y values
 				t_temp = (v0->y - currPos.y) / currVec.y;
 			}
+			// If t_temp is real and positive
 			if (t_temp > 0 && t_temp < t_) {
 				// Get next quad
 				t_ = t_temp;
@@ -95,13 +101,13 @@ void streamlineTrace(Quad*& nextQuad, Quad* currQuad, icVector3 currPos, icVecto
 			}
 		}
 		if (nextQuad_ == nullptr) {
-			/*t_ = t / 1000;
+			t_ = t / 1000;
 			t = t - t_;
 			currPos = currPos + currVec * t_;
 			currQuad = findQuad(currPos);
-			*/
-			currPos = currPos + currVec * t;
-			nextQuad = findQuad(currPos);
+			
+			//currPos = currPos + currVec * t;
+			//nextQuad = findQuad(currPos);
 			return;
 		}
 		else {
@@ -136,13 +142,14 @@ void streamlineFB(POLYLINE& line, const icVector3& seed, const double& step, boo
 		//first euler
 		icVector3 nextPos = currPos + step * currVec * coef;
 		// Is the next position in the boundary?
-		if (sinp2Boundary(nextPos, min, max)) {
+		if (isnp2Boundary(nextPos, min, max)) {
 			line.m_vertices.push_back(nextPos);	// If yes add to the line
 			break;
 		}
 		//get the new quad
 		Quad* nextQuad = nullptr;
 		// Trace the streamline into the next quad
+		// When does the nextQuad become a nullptr here?
 		streamlineTrace(nextQuad, quad, currPos, currVec * coef, step, min, max);
 		//update quad, pos, vector
 		quad = nextQuad;
@@ -163,21 +170,13 @@ void streamline(POLYLINE& line, const icVector3& seed, const double& step) {
 }
 
 
-void drawstreamlines() {
+void drawstreamlines(const double step, const double lineMult) {
 	POLYLINE line;
 	findMinMaxField(min, max);			// Find the minimum and maximum coordinates
-	for (int i = -10; i < 0; i++) {	// Display streamlines
+	for (double i = min.x; i < max.x; i = i + (1/lineMult)) {	// Display streamlines based on the number of lines to display (lineMult)
 		line.m_vertices.clear();
-		streamline(line, icVector3(i, i, 0), 0.0025);	// d2 was 0.001 but was taking too long to render
+		streamline(line, icVector3(i, i, 0), step);	// d2 was 0.001 but was taking too long to render
 		line.m_rgb = icVector3(1.0, 0.0, 0.0);			// Streamlines are white for now
-		polylines.push_back(line);						// Add line to polylines
-		printf("streamline drawn\n");
-	}
-
-	for (int i = 0; i < 10; i++) {	// Display streamlines
-		line.m_vertices.clear();
-		streamline(line, icVector3(i, i, 0), 0.0025);	// d2 was 0.001 but was taking too long to render
-		line.m_rgb = icVector3(0.0, 1.0, 0.0);			// Streamlines are white for now
 		polylines.push_back(line);						// Add line to polylines
 		printf("streamline drawn\n");
 	}
