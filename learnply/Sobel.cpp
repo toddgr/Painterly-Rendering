@@ -186,8 +186,8 @@ void sobelFilter(const std::string& fname) {
 	}
 
 	// Sobel filter
-	for (i = 1; i < NPN; i++) {		// row
-		for (j = 1; j < NPN; j++) {	// column
+	for (i = 0; i < NPN - 1; i++) {		// row
+		for (j = 0; j < NPN - 1; j++) {	// column
 			// Initial magnitude for r,g,b (0,1,2) in the x and y directions
 			float mag0x = 0.0;
 			float mag1x = 0.0;

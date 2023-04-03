@@ -128,7 +128,7 @@ void streamlineFB(POLYLINE& line, const icVector3& seed, const double& step, boo
 
 	while (quad != nullptr) {
 		icVector3 currVec = getVector(quad, currPos);	// Get the Vector
-		//v:=0											// Could this be replaced with the edge field?
+		//v:=0											
 		if (currVec.length() < EPSILON) {				// Control the length of the vector
 			break;
 		}
@@ -162,7 +162,15 @@ void streamline(POLYLINE& line, const icVector3& seed, const double& step) {  //
 void drawstreamlines() {
 	POLYLINE line;
 	findMinMaxField(min, max);			// Find the minimum and maximum coordinates
-	for (int i = -10; i < 10; i++) {	// Display streamlines
+	//for (int i = -10; i < -3; i++) {	// Display streamlines
+	//	line.m_vertices.clear();
+	//	streamline(line, icVector3(i, i, 0), 0.0025);	// d2 was 0.001 but was taking too long to render
+	//	line.m_rgb = icVector3(1.0, 0.0, 0.0);			// Streamlines are white for now
+	//	polylines.push_back(line);						// Add line to polylines
+	//	printf("streamline drawn\n");
+	//}
+
+	for (int i = 6; i < 10; i++) {	// Display streamlines
 		line.m_vertices.clear();
 		streamline(line, icVector3(i, i, 0), 0.0025);	// d2 was 0.001 but was taking too long to render
 		line.m_rgb = icVector3(0.0, 1.0, 0.0);			// Streamlines are white for now
