@@ -10,10 +10,10 @@ constexpr auto STEP = 0.005;
 constexpr auto MIN_K = 0.05;
 
 // min and max texture coords
-int rmin = NPN;
+int rmin = NPN-1;
 int rmax = 0;
 int cmin = 0;
-int cmax = NPN; 
+int cmax = NPN-1; 
 
 extern Polyhedron* poly;
 extern std::vector<POLYLINE> polylines;
@@ -60,14 +60,19 @@ bool isnp2Boundary(icVector3& currPos, const icVector3& min, const icVector3& ma
 void streamlineTrace(Quad*& nextQuad, Quad* currQuad, icVector3 currPos, icVector3 currVec, double t,
 	const icVector3& min, const icVector3& max) {
 
-	bool insideQuad = false;
-	while (!insideQuad) {
+	bool inQuad = false;
+	while (!inQuad) {
 
 		// Is the current position outside the field?
 		// if yes, the next quad is null
 		if (currPos.x < min.x || currPos.x > max.x ||
 			currPos.y < min.y || currPos.y > max.y) {
 			nextQuad = nullptr;
+			return;
+		}
+		else if (insideQuad(currQuad, currPos)) {
+			currPos = currPos + currVec * t;
+			nextQuad = findQuad(currPos);
 			return;
 		}
 
@@ -88,9 +93,9 @@ void streamlineTrace(Quad*& nextQuad, Quad* currQuad, icVector3 currPos, icVecto
 			else { // Use y values
 				t_temp = (v0->y - currPos.y) / currVec.y;
 			}
-			// If t_temp is real and positive
+			// If t_temp is positive
 			if (t_temp > 0 && t_temp < t_) {
-				// Get next quad
+				// Get next quad, the one that isn't the current quad
 				t_ = t_temp;
 				if (edge->quads[0] != currQuad && edge->quads[1] == currQuad) {
 					nextQuad_ = edge->quads[0];
@@ -101,18 +106,18 @@ void streamlineTrace(Quad*& nextQuad, Quad* currQuad, icVector3 currPos, icVecto
 			}
 		}
 		if (nextQuad_ == nullptr) {
-			t_ = t / 1000;
-			t = t - t_;
-			currPos = currPos + currVec * t_;
-			currQuad = findQuad(currPos);
+			//t_ = t / 1000;
+			//t = t - t_;
+			//currPos = currPos + currVec * t_;
+			//currQuad = findQuad(currPos);
 			
-			//currPos = currPos + currVec * t;
-			//nextQuad = findQuad(currPos);
+			currPos = currPos + currVec * t;
+			nextQuad = findQuad(currPos);
 			return;
 		}
 		else {
 			if (t_ >= t) {
-				insideQuad = true;
+				inQuad = true;
 			}
 			else {
 				currQuad = nextQuad_;
@@ -136,6 +141,9 @@ void streamlineFB(POLYLINE& line, const icVector3& seed, const double& step, boo
 
 	while (quad != nullptr) {
 		icVector3 currVec = getVector(quad, currPos);	// Get the Vector
+		//std::cout << "{" << currPos.x << ", " << currPos.y << "," << currPos.z <<
+		//	"}: <" << currVec.x << ", " << currVec.y << ", " << currVec.z << ">" << std::endl;
+
 		if (currVec.length() < EPSILON) {				// Control the length of the vector
 			break;
 		}
@@ -150,6 +158,7 @@ void streamlineFB(POLYLINE& line, const icVector3& seed, const double& step, boo
 		Quad* nextQuad = nullptr;
 		// Trace the streamline into the next quad
 		// When does the nextQuad become a nullptr here?
+		nextQuad = findQuad(nextPos);
 		streamlineTrace(nextQuad, quad, currPos, currVec * coef, step, min, max);
 		//update quad, pos, vector
 		quad = nextQuad;
@@ -172,14 +181,100 @@ void streamline(POLYLINE& line, const icVector3& seed, const double& step) {
 
 void drawstreamlines(const double step, const double lineMult) {
 	POLYLINE line;
-	findMinMaxField(min, max);			// Find the minimum and maximum coordinates
+
+	// Find the minimum and maximum coordinates
+	findMinMaxField(min, max);
 	for (double i = min.x; i < max.x; i = i + (1/lineMult)) {	// Display streamlines based on the number of lines to display (lineMult)
 		line.m_vertices.clear();
-		streamline(line, icVector3(i, i, 0), step);	// d2 was 0.001 but was taking too long to render
+		streamline(line, icVector3(i, i, 0), step);		// step = 0.001 typically
 		line.m_rgb = icVector3(1.0, 0.0, 0.0);			// Streamlines are white for now
 		polylines.push_back(line);						// Add line to polylines
 		printf("streamline drawn\n");
 	}
+}
+
+void drawstreamlinestest(const double step, const double lineMult) {
+	// Draws the streamlines for given points: corners, edges, and center. 
+	// For our sample image of the ukrainian flag, the only streamline that should
+	// draw is the absolute middle.
+	POLYLINE line;
+
+	// Find the minimum and maximum coordinates
+	findMinMaxField(min, max);
+	//for (double i = min.x; i < max.x; i = i + (1/lineMult)) {	// Display streamlines based on the number of lines to display (lineMult)
+	//	line.m_vertices.clear();
+	//	streamline(line, icVector3(i, i, 0), step);		// step = 0.001 typically
+	//	line.m_rgb = icVector3(1.0, 0.0, 0.0);			// Streamlines are white for now
+	//	polylines.push_back(line);						// Add line to polylines
+	//	printf("streamline drawn\n");
+	//}
+	//
+	// TOP RED
+	// MIDDLE GREEN
+	// BOTTOM BLUE
+	// 
+	// top left
+	std::cout << "top left" << std::endl;
+	line.m_vertices.clear();
+	streamline(line, icVector3(-10, 10, 0), step);		// step = 0.001 typically
+	line.m_rgb = icVector3(1.0, 0.0, 0.0);			// Streamlines are white for now
+	polylines.push_back(line);						// Add line to polylines
+
+	// top middle
+	std::cout << "top middle" << std::endl;
+	line.m_vertices.clear();
+	streamline(line, icVector3(0, 10, 0), step);		// step = 0.001 typically
+	line.m_rgb = icVector3(1.0, 0.0, 0.0);			// Streamlines are white for now
+	polylines.push_back(line);						// Add line to polylines
+
+	// top right
+	std::cout << "top right" << std::endl;
+	line.m_vertices.clear();
+	streamline(line, icVector3(10, 10, 0), step);		// step = 0.001 typically
+	line.m_rgb = icVector3(1.0, 0.0, 0.0);			// Streamlines are white for now
+	polylines.push_back(line);						// Add line to polylines
+
+	// middle left
+	std::cout << "middle left" << std::endl;
+	line.m_vertices.clear();
+	streamline(line, icVector3(-10, 0, 0), step);		// step = 0.001 typically
+	line.m_rgb = icVector3(0.0, 1.0, 0.0);			// Streamlines are white for now
+	polylines.push_back(line);						// Add line to polylines
+
+	// middle
+	std::cout << "middle" << std::endl;
+	line.m_vertices.clear();
+	streamline(line, icVector3(0, 0, 0), step);		// step = 0.001 typically
+	line.m_rgb = icVector3(0.0, 1.0, 0.0);			// Streamlines are white for now
+	polylines.push_back(line);						// Add line to polylines
+
+	// middle right
+	std::cout << "middle right" << std::endl;
+	line.m_vertices.clear();
+	streamline(line, icVector3(10, 0, 0), step);		// step = 0.001 typically
+	line.m_rgb = icVector3(0.0, 1.0, 0.0);			// Streamlines are white for now
+	polylines.push_back(line);						// Add line to polylines
+
+	// bottom left
+	std::cout << "bottom left" << std::endl;
+	line.m_vertices.clear();
+	streamline(line, icVector3(-10, -10, 0), step);		// step = 0.001 typically
+	line.m_rgb = icVector3(0.0, 0.0, 1.0);			// Streamlines are white for now
+	polylines.push_back(line);						// Add line to polylines
+
+	// bottom middle
+	std::cout << "bottom middle" << std::endl;
+	line.m_vertices.clear();
+	streamline(line, icVector3(0, -10, 0), step);		// step = 0.001 typically
+	line.m_rgb = icVector3(0.0, 0.0, 1.0);			// Streamlines are white for now
+	polylines.push_back(line);						// Add line to polylines
+
+	// bottom right
+	std::cout << "bottom right" << std::endl;
+	line.m_vertices.clear();
+	streamline(line, icVector3(10, -10, 0), step);		// step = 0.001 typically
+	line.m_rgb = icVector3(0.0, 0.0, 1.0);			// Streamlines are white for now
+	polylines.push_back(line);						// Add line to polylines
 }
 
 // Find minimum and maximum coordinates for the polyhedron
@@ -212,6 +307,9 @@ void findMinMaxField(icVector3& min, icVector3& max) {
 	}
 	std::cout << "min: {" << min.x << ", " << min.y << ", " << min.z << "}" << std::endl;
 	std::cout << "max: {" << max.x << ", " << max.y << ", " << max.z << "}" << std::endl;
+	std::cout << "texture min: {" << cmin << ", " << rmax << ", 0}" << std::endl;
+	std::cout << "texture max: {" << cmax << ", " << rmin << ", 0}" << std::endl;
+
 }
 
 Quad* findQuad(const icVector3& v) {
@@ -244,8 +342,8 @@ icVector3 quadToTexture(double x, double y, double z) {
 
 	double c = (((cmax - cmin) / (max.x - min.x)) * x) +
 		(((cmin * max.x) - (cmax * min.x)) / (max.x - min.x));
-	double r = ((rmax - rmin) / (min.y - max.y)) * y + 
-		(((max.y * rmax) - (min.y * rmin)) / (min.y - max.y));
+	double r = ((rmin - rmax) / (max.y - min.y)) * y + 
+		(((max.y * rmax) - (min.y * rmin)) / (max.y - min.y));
 
 	return icVector3(c, r, z);
 }
@@ -276,7 +374,6 @@ icVector3 textureToQuad(double r, double c, double w) {
 }
 
 // Get the vector from vector field by *bilinear interpolation*
-// Could we alter this to instead get the gradient vector from the edge field?
 icVector3 getVector(Quad* q, const icVector3& p) {
 	// min.x, max.x,
 	// min.y, max.y
@@ -319,11 +416,13 @@ icVector3 getVector(Quad* q, const icVector3& p) {
 	icVector3 cr3 = quadToTexture(x3, y3, vz);
 
 	// Find the next texel using its vector
-
+	// ... might be the part causing issues. Check vector validity
+	// Do we need to be finding the vectors of each vertex in the quad?
 	icVector3 cr0p = getNextTexel(cr0.x, cr0.y, vz);
 	icVector3 cr1p = getNextTexel(cr1.x, cr1.y, vz);
 	icVector3 cr2p = getNextTexel(cr2.x, cr2.y, vz);
 	icVector3 cr3p = getNextTexel(cr3.x, cr3.y, vz);
+
 
 	// Find the corresponding vertex in the quad space
 	icVector3 xy0p = textureToQuad(cr0p.x, cr0p.y, vz);

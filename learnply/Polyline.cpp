@@ -65,7 +65,13 @@ void display_polyline(std::vector<POLYLINE>& polylines) {
 		for (auto it = polyline.m_vertices.begin(); it != polyline.m_vertices.end(); it++) {
 			
 			glVertex3d(it->entry[0], it->entry[1], it->entry[2]);
+
 		}
+		glEnd();
+
+		// Draw a disk at each point on the streamline
+		glBegin(GL_TRIANGLE_FAN);
+
 		glEnd();
 	}
 

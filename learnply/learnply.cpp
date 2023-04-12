@@ -24,7 +24,6 @@ Polyhedron* poly;
 std::vector<POLYLINE> polylines;
 const std::string fname = "../data/image/bysmall.ppm";
 GLubyte patsvec[NPN][NPN][2];	// image after filter is applied - edge field?
-// add a fifth and sixth element to store the vx and vy elements?
 
 unsigned char* pixels;
 unsigned char* original_pixels;
@@ -97,7 +96,7 @@ int main(int argc, char* argv[])
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutInitWindowPosition(20, 20);
 	glutInitWindowSize(win_width, win_height);
-	glutCreateWindow("Sobel filter");
+	glutCreateWindow("Streamlines");
 
 
 	/*initialize openGL*/
@@ -465,7 +464,7 @@ void keyboard(unsigned char key, int x, int y) {
 		initSobel(); 
 		sobelFilter(fname);
 
-		drawstreamlines(0.0025, 4.0);
+		drawstreamlinestest(0.005, 1.0);
 
 		glutPostRedisplay();
 	}
@@ -489,7 +488,7 @@ void keyboard(unsigned char key, int x, int y) {
 		initSobel();
 		sobelFilter(fname);
 
-		drawstreamlines(0.0025, 1.0);
+		drawstreamlinestest(0.005, 1.0);
 
 		glutPostRedisplay();
 	}

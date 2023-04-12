@@ -18,6 +18,7 @@ Quad* findQuad(const icVector3& y);
 void streamlineFB(POLYLINE& line, const icVector3& seed, const double& step, bool forward = true);
 void streamline(POLYLINE& line, const icVector3& seed, const double& step);
 void drawstreamlines(const double step, const double lineMult);
+void drawstreamlinestest(const double step, const double lineMult);
 
 bool isnp2Boundary(icVector3& currPos, const icVector3& min, const icVector3& max);
 
