@@ -151,7 +151,7 @@
       <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">EnableFastChecks</BasicRuntimeChecks>
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
     </ClCompile>
-    <ClCompile Include="VectorFieldTopology.cpp" />
+    <ClCompile Include="Streamline.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="glError.h" />
@@ -165,7 +165,7 @@
     <ClInclude Include="Sobel.h" />
     <ClInclude Include="tmatrix.h" />
     <ClInclude Include="trackball.h" />
-    <ClInclude Include="VectorFieldTopology.h" />
+    <ClInclude Include="Streamline.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\data\image\Lenna.ppm" />
