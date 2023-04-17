@@ -3,7 +3,7 @@
 #include <iostream>
 
 #define M_PI 3.14159265358979323846
-#define NPN 256 // for sobel-- need to change this later
+#define NPN 256 // for sobel-- need to change this to be more dynamic later
 
 constexpr auto EPSILON = 1.0e-5;
 constexpr auto STEP = 0.005;
@@ -199,20 +199,12 @@ void drawstreamlinestest(const double step, const double lineMult) {
 	// draw is the absolute middle.
 	POLYLINE line;
 
-	// Find the minimum and maximum coordinates
+	// Find the minimum and maximum coordinates or the mesh
 	findMinMaxField(min, max);
-	//for (double i = min.x; i < max.x; i = i + (1/lineMult)) {	// Display streamlines based on the number of lines to display (lineMult)
-	//	line.m_vertices.clear();
-	//	streamline(line, icVector3(i, i, 0), step);		// step = 0.001 typically
-	//	line.m_rgb = icVector3(1.0, 0.0, 0.0);			// Streamlines are white for now
-	//	polylines.push_back(line);						// Add line to polylines
-	//	printf("streamline drawn\n");
-	//}
-	//
 	// TOP RED
 	// MIDDLE GREEN
 	// BOTTOM BLUE
-	// 
+	
 	// top left
 	std::cout << "top left" << std::endl;
 	line.m_vertices.clear();
@@ -340,35 +332,34 @@ bool insideQuad(const Quad* q, const icVector3& p) {
 // Get the c and r values at a given vertex x,y
 icVector3 quadToTexture(double x, double y, double z) {
 
-	double c = (((cmax - cmin) / (max.x - min.x)) * x) +
-		(((cmin * max.x) - (cmax * min.x)) / (max.x - min.x));
-	double r = ((rmin - rmax) / (max.y - min.y)) * y + 
-		(((max.y * rmax) - (min.y * rmin)) / (max.y - min.y));
-
+	int c = ((x * (cmax - cmin)) +
+		((cmin * max.x) - (cmax * min.x))) / (max.x - min.x);
+	int r = ((y * (rmin - rmax)) + 
+		((max.y * rmax) - (min.y * rmin))) / (max.y - min.y);
 	return icVector3(c, r, z);
 }
 
 // Find the next texel from c,r vector
-icVector3 getNextTexel(double c, double r, double w) {
+icVector3 getNextTexel(int c, int r, int w) {
 	int ir = (int)r;
 	int ic = (int)c;
 
-	double vc = patsvec[ic][ir][0];
-	double vr = patsvec[ic][ir][1];
+	int vc = patsvec[ic][ir][0];
+	int vr = patsvec[ic][ir][1];
 
-	double cprime = c + vc;
-	double rprime = r + vr;
+	int cprime = c + vc;
+	int rprime = r + vr;
 
 	return icVector3(cprime, rprime, w);
 }
 
 // Get the x and y values from a given texel c, r
-icVector3 textureToQuad(double r, double c, double w) {
+icVector3 textureToQuad(int r, int c, int w) {
 
-	double x = (((c * (max.x - min.x)) / (cmax - cmin))) -
-		(((cmin * max.x) - (cmax * min.x)) / (cmax - cmin));
-	double y = (r * ((min.y - max.y) / (rmax - rmin))) +
-		(((rmax * max.y) - (rmin * min.y)) / (rmax - rmin));
+	double x = ((c * (max.x - min.x)) -
+		((cmin * max.x) - (cmax * min.x))) / (cmax - cmin);
+	double y = ((r * (max.y - min.y)) -
+		((rmax * max.y) - (rmin * min.y))) / (rmin - rmax);
 
 	return icVector3(x, y, w);
 }
@@ -409,7 +400,7 @@ icVector3 getVector(Quad* q, const icVector3& p) {
 	y3 = q->verts[3]->y;
 
 	// Get the corresponding texels in the texture space
-	
+	// (x,y) -> (c,r)
 	icVector3 cr0 = quadToTexture(x0, y0, vz);
 	icVector3 cr1 = quadToTexture(x1, y1, vz);
 	icVector3 cr2 = quadToTexture(x2, y2, vz);
@@ -451,4 +442,3 @@ icVector3 getVector(Quad* q, const icVector3& p) {
 	//normalize(v);
 	return v;
 }
-

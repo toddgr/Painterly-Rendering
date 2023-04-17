@@ -488,7 +488,7 @@ void keyboard(unsigned char key, int x, int y) {
 		initSobel();
 		sobelFilter(fname);
 
-		drawstreamlinestest(0.005, 1.0);
+		drawstreamlines(0.005, 1.0);
 
 		glutPostRedisplay();
 	}
