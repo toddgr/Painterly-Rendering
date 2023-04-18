@@ -68,7 +68,7 @@ std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
 const std::string fname = "../data/image/bysmall.ppm";
 int alpha = (255 * 0.2);
-GLubyte patsvec[NPN][NPN][2]; // For storing the edge field
+float patsvec[NPN][NPN][2]; // For storing the edge field
 
 icVector3 min, max;
 // min and max texture coords
@@ -1130,6 +1130,27 @@ void display_polyhedron(Polyhedron* poly)
 	break;
 	case 7:	// display original image
 	{
+		glEnable(GL_LIGHTING);
+		glEnable(GL_LIGHT0);
+		glEnable(GL_LIGHT1);
+
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		GLfloat mat_diffuse[4] = { 0.24, 0.4, 0.47, 0.0 };
+		GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+		glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+		glMaterialf(GL_FRONT, GL_SHININESS, 50.0);
+
+		for (int i = 0; i < poly->nquads; i++) {
+			Quad* temp_q = poly->qlist[i];
+			glBegin(GL_POLYGON);
+			for (int j = 0; j < 4; j++) {
+				Vertex* temp_v = temp_q->verts[j];
+				glNormal3d(temp_v->normal.entry[0], temp_v->normal.entry[1], temp_v->normal.entry[2]);
+				glVertex3d(temp_v->x, temp_v->y, temp_v->z);
+			}
+			glEnd();
+		}
 		displayImage();
 		glutPostRedisplay();
 	}
@@ -1658,8 +1679,8 @@ void displayImage() {
 
 	// background for rendering color coding and lighting. Anything that is not the image will be white.
 	// Not related to edge display.
-	//glClearColor(1., 1., 1., 1.0);
-	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClearColor(1., 1., 1., 1.0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, win_width, win_height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 	for (int i = 0; i < poly->nquads; i++)
 	{
@@ -1719,8 +1740,6 @@ void initSobel()
 }
 
 void displaySobel() {
-	// Can we display *just* the Sobel filter without needing to toggle IBFV?
-	// Perhaps that is the complication here.
 
 	glDisable(GL_LIGHTING);
 	glDisable(GL_LIGHT0);
@@ -1912,36 +1931,45 @@ void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines)
 
 		// Build streamlines from each point on the axes
 		build_streamline(i, 0);
-		//build_streamline(0, i);
+		build_streamline(0, i);
 	}
 }
 
 void print_test_points() {
 	// top left
 	std::cout << "top left: (" << quadToTexture(-10, 10, 0).x << ", " << quadToTexture(-10, 10, 0).y << ")" << std::endl;
+	//std::cout << "top left: (" << patsvec[cmin][rmax][0] << ", " << patsvec[0][0][1] << ")" << std::endl;
 	
 	// top middle
 	std::cout << "top middle: (" << quadToTexture(0, 10, 0).x << ", " << quadToTexture(0, 10, 0).y << ")" << std::endl;
+	//std::cout << "top middle: (" << patsvec[128][0][0] << ", " << patsvec[128][0][1] << ")" << std::endl;
 	
 	// top right
 	std::cout << "top right: (" << quadToTexture(10, 10, 0).x << ", " << quadToTexture(10, 10, 0).y << ")" << std::endl;
+	//std::cout << "top right: (" << patsvec[255][0][0] << ", " << patsvec[255][0][1] << ")" << std::endl;
 	
 	// middle left
 	std::cout << "middle left: (" << quadToTexture(-10, 0, 0).x << ", " << quadToTexture(-10, 0, 0).y << ")" << std::endl;
+	//std::cout << "middle left: (" << patsvec[0][128][0] << ", " << patsvec[0][128][1] << ")" << std::endl;
 	
 	// middle
 	std::cout << "middle: (" << quadToTexture(0, 0, 0).x << ", " << quadToTexture(0, 0, 0).y << ")" << std::endl;
+	//std::cout << "middle: (" << patsvec[128][128][0] << ", " << patsvec[128][128][1] << ")" << std::endl;
 
 	// middle right
 	std::cout << "middle right: (" << quadToTexture(10, 0, 0).x << ", " << quadToTexture(10, 0, 0).y << ")" << std::endl;
+	//std::cout << "middle right: (" << patsvec[255][128][0] << ", " << patsvec[255][128][1] << ")" << std::endl;
 
 	// bottom left
 	std::cout << "bottom left: (" << quadToTexture(-10, -10, 0).x << ", " << quadToTexture(-10, -10, 0).y << ")" << std::endl;
+	//std::cout << "bottom left: (" << patsvec[0][255][0] << ", " << patsvec[0][255][1] << ")" << std::endl;
 
 	// bottom middle
 	std::cout << "bottom middle: (" << quadToTexture(0, -10, 0).x << ", " << quadToTexture(0, -10, 0).y << ")" << std::endl;
+	//std::cout << "bottom middle: (" << patsvec[128][255][0] << ", " << patsvec[128][255][1] << ")" << std::endl;
 
 	// bottom right
 	std::cout << "bottom right: (" << quadToTexture(10, -10, 0).x << ", " << quadToTexture(10, -10, 0).y << ")" << std::endl;
+	//std::cout << "bottom right: (" << patsvec[255][255][0] << ", " << patsvec[255][255][1] << ")" << std::endl;
 
 }
