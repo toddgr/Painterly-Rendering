@@ -66,7 +66,7 @@ const double STEP = 0.01; // You should experiment to find the optimal step size
 const int STEP_MAX = 10000; // Upper limit of steps to take for tracing each streamline.
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
-const std::string fname = "../data/image/bysmall.ppm";
+const std::string fname = "../data/image/rbsmall.ppm";
 int alpha = (255 * 0.2);
 float patsvec[NPN][NPN][2]; // For storing the edge field
 
@@ -487,19 +487,14 @@ void keyboard(unsigned char key, int x, int y) {
 	case '3':	// checkerboard display
 	{
 		display_mode = 3;
+		findMinMaxField(min, max);
+		std::cout << "Drawing streamlines" << std::endl;
+		//for patsvec
+		initSobel();
+		sobelFilter(fname);
 
-		double L = (poly->radius * 2) / 30;
-		for (int i = 0; i < poly->nquads; i++) {
-			Quad* temp_q = poly->qlist[i];
-			for (int j = 0; j < 4; j++) {
-
-				Vertex* temp_v = temp_q->verts[j];
-
-				temp_v->R = int(temp_v->x / L) % 2 == 0 ? 1 : 0;
-				temp_v->G = int(temp_v->y / L) % 2 == 0 ? 1 : 0;
-				temp_v->B = 0.0;
-			}
-		}
+		draw_lines(&points, &streamlines);
+		print_test_points();
 		glutPostRedisplay();
 	}
 	break;
@@ -507,7 +502,7 @@ void keyboard(unsigned char key, int x, int y) {
 	case '4':	// Drawing points and lines created by the draw_lines() function
 		display_mode = 4;
 		findMinMaxField(min, max);
-		std::cout << "Drawing streamlines" << std::endl;
+		std::cout << "Drawing brush strokes" << std::endl;
 		//for patsvec
 		initSobel();
 		sobelFilter(fname);
@@ -1018,23 +1013,41 @@ void display_polyhedron(Polyhedron* poly)
 	}
 	break;
 
-	case 3:	// checkerboard pattern display
+	case 3:	// Displays streamlines
 	{
-		glDisable(GL_LIGHTING);
+		glEnable(GL_LIGHTING);
+		glEnable(GL_LIGHT0);
+		glEnable(GL_LIGHT1);
+
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		GLfloat mat_diffuse[4] = { 0.24, 0.4, 0.47, 0.0 };
+		GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+		glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+		glMaterialf(GL_FRONT, GL_SHININESS, 50.0);
+
 		for (int i = 0; i < poly->nquads; i++) {
 			Quad* temp_q = poly->qlist[i];
 			glBegin(GL_POLYGON);
 			for (int j = 0; j < 4; j++) {
 				Vertex* temp_v = temp_q->verts[j];
-				glColor3f(temp_v->R, temp_v->G, temp_v->B);
+				glNormal3d(temp_v->normal.entry[0], temp_v->normal.entry[1], temp_v->normal.entry[2]);
 				glVertex3d(temp_v->x, temp_v->y, temp_v->z);
 			}
 			glEnd();
 		}
+		displayImage();
+		glutPostRedisplay();
+
+		// draw lines
+		for (int k = 0; k < streamlines.size(); k++)
+		{
+			drawPolyLine(streamlines[k], 1.0, 1.0, 0.0, 0.0);
+		}
 	}
 	break;
 
-	case 4: // points and lines drawing example
+	case 4: // points and lines drawing example, for brush strokes
 	{
 		glEnable(GL_LIGHTING);
 		glEnable(GL_LIGHT0);
@@ -1130,16 +1143,16 @@ void display_polyhedron(Polyhedron* poly)
 	break;
 	case 7:	// display original image
 	{
-		glEnable(GL_LIGHTING);
-		glEnable(GL_LIGHT0);
-		glEnable(GL_LIGHT1);
+		//glEnable(GL_LIGHTING);
+		//glEnable(GL_LIGHT0);
+		//glEnable(GL_LIGHT1);
 
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		GLfloat mat_diffuse[4] = { 0.24, 0.4, 0.47, 0.0 };
-		GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
-		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-		glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-		glMaterialf(GL_FRONT, GL_SHININESS, 50.0);
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		//GLfloat mat_diffuse[4] = { 0.24, 0.4, 0.47, 0.0 };
+		//GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+		//glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+		//glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+		//glMaterialf(GL_FRONT, GL_SHININESS, 50.0);
 
 		for (int i = 0; i < poly->nquads; i++) {
 			Quad* temp_q = poly->qlist[i];
@@ -1516,8 +1529,18 @@ icVector3 quadToTexture(double x, double y, double z) {
 	int ir = (int)r;
 	int ic = (int)c;
 
-	double vc = patsvec[ic][ir][0];
-	double vr = patsvec[ic][ir][1];
+	double vc, vr;
+
+	// Make sure that the vector is not out of bounds
+	if (ic > 0 || ir > 0 || ic < NPN-1 || ir < NPN-1) {
+		vc = patsvec[ic][ir][0];
+		vr = patsvec[ic][ir][1];
+	}
+	else {
+		vc = 0.0;
+		vr = 0.0;
+	}
+
 
 	// Define vector with respect to c,r
 	vc += c;
@@ -1650,7 +1673,7 @@ void displayImage() {
 	glGetDoublev(GL_PROJECTION_MATRIX, projection_matrix);
 	glGetIntegerv(GL_VIEWPORT, viewport);
 
-	glEnable(GL_BLEND);
+	//glEnable(GL_BLEND);
 
 	// blend in pattern 
 	glMatrixMode(GL_PROJECTION);
@@ -1706,7 +1729,7 @@ void displayImage() {
 		glEnd();
 	}
 	glDisable(GL_TEXTURE_2D);
-	glDisable(GL_BLEND);
+	//glDisable(GL_BLEND);
 	glShadeModel(GL_SMOOTH);
 }
 
@@ -1878,7 +1901,7 @@ void sobelFilter(const std::string& fname) {
 			float mag1y = 0.0;
 			float mag2y = 0.0;
 
-			//// Add magnitude weights from neighbors
+			// Add magnitude weights from neighbors
 			//for (int a = 0; a < 3; a++) {
 			//	for (int b = 0; b < 3; b++) {
 			//		mag0x += pat0[i - 1 + a][j - 1 + b][0] * kernelx[a][b];
@@ -1894,26 +1917,31 @@ void sobelFilter(const std::string& fname) {
 			if (i > 0 && j > 0) mag0x += pat0[i-1][j-1][0] * kernelx[0][0];
 			if (j > 0) mag0x += pat0[i][j-1][0] * kernelx[1][0];
 			if (i < NPN-1 && j > 0) mag0x += pat0[i+1][j-1][0] * kernelx[2][0];
+
 			// Middle row
 			if (i > 0) mag0x += pat0[i - 1][j][0] * kernelx[0][1];
 			mag0x += pat0[i][j][0] * kernelx[1][1];
 			if (i < NPN-1) mag0x += pat0[i+1][j][0] * kernelx[2][1];
+
 			// Bottom row
 			if (i >0 && j < NPN-1)mag0x += pat0[i-1][j+1][0] * kernelx[0][2];
 			if (j < NPN-1) mag0x += pat0[i][j+1][0] * kernelx[1][2];
 			if (i < NPN-1 && j < NPN-1) mag0x += pat0[i+1][j+1][0] * kernelx[2][2];
+
 
 			//// ydir
 			// Top row
 			if (i > 0 && j > 0) mag0y += pat0[i - 1][j - 1][0] * kernely[0][0];
 			if (j > 0) mag0y += pat0[i][j - 1][0] * kernely[1][0];
 			if (i < NPN - 1 && j > 0) mag0y += pat0[i + 1][j - 1][0] * kernely[2][0];
+			
 			// Middle row
 			if (i > 0) mag0y += pat0[i - 1][j][0] * kernely[0][1];
 			mag0y += pat0[i][j][0] * kernely[1][1];
 			if (i < NPN - 1) mag0y += pat0[i + 1][j][0] * kernely[2][1];
+
 			// Bottom row
-			if (i > 0 && j < NPN - 1)mag0y += pat0[i - 1][j + 1][0] * kernely[0][2];
+			if (i > 0 && j < NPN - 1) mag0y += pat0[i - 1][j + 1][0] * kernely[0][2];
 			if (j < NPN - 1) mag0y += pat0[i][j + 1][0] * kernely[1][2];
 			if (i < NPN - 1 && j < NPN - 1) mag0y += pat0[i + 1][j + 1][0] * kernely[2][2];
 
@@ -1960,28 +1988,31 @@ void sobelFilter(const std::string& fname) {
 // example function for using dots and polylines
 void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines)
 {
-	//// make dots along x and y axes
+	// make dots along x and y axes
 	//for (int i = -10; i <= 10; i++)
 	//{
-	//	icVector3 x_ax = icVector3(i, 0, 0);
-	//	icVector3 y_ax = icVector3(0, i, 0);
-	//	points->push_back(x_ax);
-	//	points->push_back(y_ax);
+	//	//for (int j = -10; j <= 10; j++) {
+	//	//	build_streamline(i, j);
+	//	//}
+	//	//icVector3 x_ax = icVector3(i, 0, 0);
+	//	//icVector3 y_ax = icVector3(0, i, 0);
+	//	//points->push_back(x_ax);
+	//	//points->push_back(y_ax);
 
 	//	// Build streamlines from each point on the axes
-	//	//build_streamline(i, 0);
-	//	//build_streamline(0, i);
+	//	build_streamline(i, 0);
+	//	build_streamline(0, i);
 	//}
 
-	build_streamline(0, 0);
-	//build_streamline(-10, 10);
-	//build_streamline(0, 10);
-	//build_streamline(10, 10);
-	//build_streamline(-10, 0);
-	//build_streamline(10, 0);
-	//build_streamline(-10, -10);
-	//build_streamline(0, -10);
-	//build_streamline(10, -10);
+	//build_streamline(0, 0);
+	build_streamline(-10, 10);
+	build_streamline(0, 10);
+	build_streamline(10, 10);
+	build_streamline(-10, 0);
+	build_streamline(10, 0);
+	build_streamline(-10, -10);
+	build_streamline(0, -10);
+	build_streamline(10, -10);
 }
 
 void print_test_points() {
