@@ -149,7 +149,7 @@ int main(int argc, char* argv[])
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutInitWindowPosition(20, 20);
 	glutInitWindowSize(win_width, win_height);
-	glutCreateWindow("Scientific Visualization");
+	glutCreateWindow("Streamline Testing");
 
 	
 	/*initialize openGL*/
@@ -1437,6 +1437,9 @@ void build_streamline(double x, double y)
 			LineSegment linear_seg = LineSegment(cpos.x, cpos.y, 0, npos.x, npos.y, 0);
 			pline.push_back(linear_seg);
 
+			// Add a point here, let it sample the color of the image
+			points.push_back(icVector3(cpos.x, cpos.y, 0));
+
 			cpos = npos;
 			step_counter++;
 		}
@@ -1454,6 +1457,9 @@ void build_streamline(double x, double y)
 			cquad = streamline_step(cpos, npos, cquad, false);
 			LineSegment linear_seg = LineSegment(cpos.x, cpos.y, 0, npos.x, npos.y, 0);
 			pline.push_back(linear_seg);
+
+			// Add a point here, let it sample the color of the image
+			points.push_back(icVector3(cpos.x, cpos.y, 0));
 
 			cpos = npos;
 			step_counter++;
@@ -1872,17 +1878,50 @@ void sobelFilter(const std::string& fname) {
 			float mag1y = 0.0;
 			float mag2y = 0.0;
 
-			for (int a = 0; a < 3; a++) {
-				for (int b = 0; b < 3; b++) {
-					mag0x += pat0[i - 1 + a][j - 1 + b][0] * kernelx[a][b];
-					mag1x += pat0[i - 1 + a][j - 1 + b][1] * kernelx[a][b];
-					mag2x += pat0[i - 1 + a][j - 1 + b][2] * kernelx[a][b];
+			//// Add magnitude weights from neighbors
+			//for (int a = 0; a < 3; a++) {
+			//	for (int b = 0; b < 3; b++) {
+			//		mag0x += pat0[i - 1 + a][j - 1 + b][0] * kernelx[a][b];
 
-					mag0y += pat0[i - 1 + a][j - 1 + b][0] * kernely[a][b];
-					mag1y += pat0[i - 1 + a][j - 1 + b][1] * kernely[a][b];
-					mag2y += pat0[i - 1 + a][j - 1 + b][2] * kernely[a][b];
-				}
-			}
+			//		mag0y += pat0[i - 1 + a][j - 1 + b][0] * kernely[a][b];
+			//	}
+			//}
+
+			// Gradients are not producing expected values--
+			// Trying the messier version
+			// xdir	
+			// Top row
+			if (i > 0 && j > 0) mag0x += pat0[i-1][j-1][0] * kernelx[0][0];
+			if (j > 0) mag0x += pat0[i][j-1][0] * kernelx[1][0];
+			if (i < NPN-1 && j > 0) mag0x += pat0[i+1][j-1][0] * kernelx[2][0];
+			// Middle row
+			if (i > 0) mag0x += pat0[i - 1][j][0] * kernelx[0][1];
+			mag0x += pat0[i][j][0] * kernelx[1][1];
+			if (i < NPN-1) mag0x += pat0[i+1][j][0] * kernelx[2][1];
+			// Bottom row
+			if (i >0 && j < NPN-1)mag0x += pat0[i-1][j+1][0] * kernelx[0][2];
+			if (j < NPN-1) mag0x += pat0[i][j+1][0] * kernelx[1][2];
+			if (i < NPN-1 && j < NPN-1) mag0x += pat0[i+1][j+1][0] * kernelx[2][2];
+
+			//// ydir
+			// Top row
+			if (i > 0 && j > 0) mag0y += pat0[i - 1][j - 1][0] * kernely[0][0];
+			if (j > 0) mag0y += pat0[i][j - 1][0] * kernely[1][0];
+			if (i < NPN - 1 && j > 0) mag0y += pat0[i + 1][j - 1][0] * kernely[2][0];
+			// Middle row
+			if (i > 0) mag0y += pat0[i - 1][j][0] * kernely[0][1];
+			mag0y += pat0[i][j][0] * kernely[1][1];
+			if (i < NPN - 1) mag0y += pat0[i + 1][j][0] * kernely[2][1];
+			// Bottom row
+			if (i > 0 && j < NPN - 1)mag0y += pat0[i - 1][j + 1][0] * kernely[0][2];
+			if (j < NPN - 1) mag0y += pat0[i][j + 1][0] * kernely[1][2];
+			if (i < NPN - 1 && j < NPN - 1) mag0y += pat0[i + 1][j + 1][0] * kernely[2][2];
+
+			mag1x = mag0x;
+			mag2x = mag0x;
+
+			mag1y = mag0y;
+			mag2y = mag0y;
 
 			// Average values for r, g, b
 			float v0 = std::sqrt(mag0x * mag0x + mag0y * mag0y);	// R gradient
@@ -1903,8 +1942,8 @@ void sobelFilter(const std::string& fname) {
 			pat[i][j][2] = v2;
 			pat[i][j][3] = alpha;
 
-			patsvec[i][j][0] = mag0x;
-			patsvec[i][j][1] = mag0y;
+			patsvec[i][j][0] = mag0x/NPN;
+			patsvec[i][j][1] = mag0y/NPN;
 
 			//std::cout << "[" << i << "][" << j << "]: " << "{ " << mag0x << ", " << mag0y << " }" << std::endl;
 
@@ -1921,18 +1960,28 @@ void sobelFilter(const std::string& fname) {
 // example function for using dots and polylines
 void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines)
 {
-	// make dots along x and y axes
-	for (int i = -10; i <= 10; i++)
-	{
-		icVector3 x_ax = icVector3(i, 0, 0);
-		icVector3 y_ax = icVector3(0, i, 0);
-		points->push_back(x_ax);
-		points->push_back(y_ax);
+	//// make dots along x and y axes
+	//for (int i = -10; i <= 10; i++)
+	//{
+	//	icVector3 x_ax = icVector3(i, 0, 0);
+	//	icVector3 y_ax = icVector3(0, i, 0);
+	//	points->push_back(x_ax);
+	//	points->push_back(y_ax);
 
-		// Build streamlines from each point on the axes
-		build_streamline(i, 0);
-		build_streamline(0, i);
-	}
+	//	// Build streamlines from each point on the axes
+	//	//build_streamline(i, 0);
+	//	//build_streamline(0, i);
+	//}
+
+	build_streamline(0, 0);
+	//build_streamline(-10, 10);
+	//build_streamline(0, 10);
+	//build_streamline(10, 10);
+	//build_streamline(-10, 0);
+	//build_streamline(10, 0);
+	//build_streamline(-10, -10);
+	//build_streamline(0, -10);
+	//build_streamline(10, -10);
 }
 
 void print_test_points() {
