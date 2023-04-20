@@ -66,7 +66,7 @@ const double STEP = 0.01; // You should experiment to find the optimal step size
 const int STEP_MAX = 10000; // Upper limit of steps to take for tracing each streamline.
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
-const std::string fname = "../data/image/rbsmall.ppm";
+const std::string fname = "../data/image/bysmall.ppm";
 int alpha = (255 * 0.2);
 float patsvec[NPN][NPN][2]; // For storing the edge field
 
@@ -1673,8 +1673,6 @@ void displayImage() {
 	glGetDoublev(GL_PROJECTION_MATRIX, projection_matrix);
 	glGetIntegerv(GL_VIEWPORT, viewport);
 
-	//glEnable(GL_BLEND);
-
 	// blend in pattern 
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
@@ -1729,7 +1727,6 @@ void displayImage() {
 		glEnd();
 	}
 	glDisable(GL_TEXTURE_2D);
-	//glDisable(GL_BLEND);
 	glShadeModel(GL_SMOOTH);
 }
 
@@ -1798,7 +1795,7 @@ void displaySobel() {
 	glGetDoublev(GL_PROJECTION_MATRIX, projection_matrix);
 	glGetIntegerv(GL_VIEWPORT, viewport);
 
-	glEnable(GL_BLEND);
+	//glEnable(GL_BLEND);
 
 	// blend in noise pattern 
 	glMatrixMode(GL_PROJECTION);
@@ -1856,7 +1853,7 @@ void displaySobel() {
 		glEnd();
 	}
 	glDisable(GL_TEXTURE_2D);
-	glDisable(GL_BLEND);
+	//glDisable(GL_BLEND);
 	glShadeModel(GL_SMOOTH);
 }
 
