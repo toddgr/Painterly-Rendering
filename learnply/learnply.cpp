@@ -484,14 +484,14 @@ void keyboard(unsigned char key, int x, int y) {
 		glutPostRedisplay();
 		break;
 
-	case '3':	// checkerboard display
+	case '3':	// streamline display over original image
 	{
 		display_mode = 3;
 		findMinMaxField(min, max);
 		std::cout << "Drawing streamlines" << std::endl;
 		//for patsvec
-		initSobel();
-		sobelFilter(fname);
+		initImage();
+		imageFilter(fname);
 
 		draw_lines(&points, &streamlines);
 		print_test_points();
@@ -1015,17 +1015,6 @@ void display_polyhedron(Polyhedron* poly)
 
 	case 3:	// Displays streamlines
 	{
-		glEnable(GL_LIGHTING);
-		glEnable(GL_LIGHT0);
-		glEnable(GL_LIGHT1);
-
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		GLfloat mat_diffuse[4] = { 0.24, 0.4, 0.47, 0.0 };
-		GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
-		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-		glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-		glMaterialf(GL_FRONT, GL_SHININESS, 50.0);
-
 		for (int i = 0; i < poly->nquads; i++) {
 			Quad* temp_q = poly->qlist[i];
 			glBegin(GL_POLYGON);
@@ -1036,6 +1025,7 @@ void display_polyhedron(Polyhedron* poly)
 			}
 			glEnd();
 		}
+
 		displayImage();
 		glutPostRedisplay();
 
@@ -1078,6 +1068,8 @@ void display_polyhedron(Polyhedron* poly)
 		}
 
 		// draw points
+		// Here, convert the vertex to pixel space and sample the color at that point on the image.
+		// set that color to be that same as the stroke that we are drawing.
 		for (int k = 0; k < points.size(); k++)
 		{
 			icVector3 point = points[k];
@@ -1143,17 +1135,6 @@ void display_polyhedron(Polyhedron* poly)
 	break;
 	case 7:	// display original image
 	{
-		//glEnable(GL_LIGHTING);
-		//glEnable(GL_LIGHT0);
-		//glEnable(GL_LIGHT1);
-
-		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		//GLfloat mat_diffuse[4] = { 0.24, 0.4, 0.47, 0.0 };
-		//GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
-		//glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-		//glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-		//glMaterialf(GL_FRONT, GL_SHININESS, 50.0);
-
 		for (int i = 0; i < poly->nquads; i++) {
 			Quad* temp_q = poly->qlist[i];
 			glBegin(GL_POLYGON);
@@ -1967,8 +1948,8 @@ void sobelFilter(const std::string& fname) {
 			pat[i][j][2] = v2;
 			pat[i][j][3] = alpha;
 
-			patsvec[i][j][0] = mag0x/NPN;
-			patsvec[i][j][1] = mag0y/NPN;
+			patsvec[i][j][0] = mag0x;
+			patsvec[i][j][1] = mag0y;
 
 			//std::cout << "[" << i << "][" << j << "]: " << "{ " << mag0x << ", " << mag0y << " }" << std::endl;
 
@@ -2001,7 +1982,7 @@ void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines)
 	//	build_streamline(0, i);
 	//}
 
-	//build_streamline(0, 0);
+	build_streamline(0, 0);
 	build_streamline(-10, 10);
 	build_streamline(0, 10);
 	build_streamline(10, 10);
