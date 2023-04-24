@@ -66,7 +66,7 @@ const double STEP = 0.01; // You should experiment to find the optimal step size
 const int STEP_MAX = 10000; // Upper limit of steps to take for tracing each streamline.
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
-const std::string fname = "../data/image/bysmall.ppm";
+const std::string fname = "../data/image/rbsmall.ppm";
 int alpha = (255 * 0.2);
 float patsvec[NPN][NPN][2]; // For storing the edge field
 
@@ -127,6 +127,7 @@ void sobelFilter(const std::string& fname);
 
 void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines);
 void print_test_points();
+void print_pixel_color_neighbors(int i, int j);
 
 /******************************************************************************
 Main program.
@@ -474,32 +475,48 @@ void keyboard(unsigned char key, int x, int y) {
 		exit(0);
 		break;
 
-	case '1':	// solid color display with lighting
-		display_mode = 1;
+	case '0':
+	{
+		display_mode = 7;	// Display mode for original image
+		printf("Displaying original image.\n");
+		initImage();	// Initialize image out of input file
+		imageFilter(fname);
 		glutPostRedisplay();
-		break;
+	}
+	break;
 
-	case '2':	// wireframe display
-		display_mode = 2;
+	case '1':  // Edge field - Sobel filter implementation
+	{
+		display_mode = 8;
+		printf("Displaying Sobel image.\n");
+		initSobel();
+		sobelFilter(fname);
 		glutPostRedisplay();
-		break;
+	}
+	break;
 
-	case '3':	// streamline display over original image
+	case '2':	// streamline display over original image
 	{
 		display_mode = 3;
 		findMinMaxField(min, max);
 		std::cout << "Drawing streamlines" << std::endl;
+
+		initSobel();
+		sobelFilter(fname);
+
 		//for patsvec
 		initImage();
 		imageFilter(fname);
 
 		draw_lines(&points, &streamlines);
 		print_test_points();
+		print_pixel_color_neighbors(64, 64);
+		print_pixel_color_neighbors(192, 192);
 		glutPostRedisplay();
 	}
 	break;
 
-	case '4':	// Drawing points and lines created by the draw_lines() function
+	case '3':	// Brush stroke display
 		display_mode = 4;
 		findMinMaxField(min, max);
 		std::cout << "Drawing brush strokes" << std::endl;
@@ -509,6 +526,22 @@ void keyboard(unsigned char key, int x, int y) {
 
 		draw_lines(&points, &streamlines);
 		print_test_points();
+		glutPostRedisplay();
+		break;
+
+	case 's':	// Drawing streamlines and grid dots... test
+		display_mode = 4;
+		test_lines_drawing(&points, &lines);
+		glutPostRedisplay();
+		break;
+
+	case 'z':	// solid color display with lighting
+		display_mode = 1;
+		glutPostRedisplay();
+		break;
+
+	case 'x':	// wireframe display
+		display_mode = 2;
 		glutPostRedisplay();
 		break;
 
@@ -549,32 +582,6 @@ void keyboard(unsigned char key, int x, int y) {
 		glutPostRedisplay();
 	}
 	break;
-
-	case 'o':
-	{
-		display_mode = 7;	// Display mode for original image
-		printf("Displaying original image.\n");
-		initImage();	// Initialize image out of input file
-		imageFilter(fname);
-		glutPostRedisplay();
-	}
-	break;
-
-	case 'e':  // Edge field - Sobel filter implementation
-	{
-		display_mode = 8;
-		printf("Displaying Sobel image.\n");
-		initSobel();
-		sobelFilter(fname);
-		glutPostRedisplay();
-	}
-	break;
-
-	case 's':	// Drawing lines created by the dots_and_lines_example() function
-		display_mode = 4;
-		test_lines_drawing(&points, &lines);
-		glutPostRedisplay();
-		break;
 
 	case 'r':	// reset rotation and transformation
 		mat_ident(rotmat);
@@ -1517,10 +1524,10 @@ icVector3 quadToTexture(double x, double y, double z) {
 		vc = patsvec[ic][ir][0];
 		vr = patsvec[ic][ir][1];
 	}
-	else {
-		vc = 0.0;
-		vr = 0.0;
-	}
+	//else {
+	//	vc = 0.0;
+	//	vr = 0.0;
+	//}
 
 
 	// Define vector with respect to c,r
@@ -1605,7 +1612,7 @@ void imageFilter(const std::string& fname) {
 	GLubyte pat[NPN][NPN][4];	// image before filter is applied - intensity
 	GLubyte pat0[NPN][NPN][4];	// image after filter is applied - edge field?
 
-	// Set color of each pixel -- something is wrong here
+	// Set color of each pixel
 	int i, j;
 	for (i = 0; i < NPN; i++) {		// rows
 		for (j = 0; j < NPN; j++) { // columns
@@ -1854,13 +1861,14 @@ void sobelFilter(const std::string& fname) {
 	ppm img(fname);
 	GLubyte pat0[NPN][NPN][4];	// image before filter is applied - intensity
 	GLubyte pat[NPN][NPN][4];
+
 	// Set color of each pixel to its intensity
 	int i, j;
 	for (i = 0; i < NPN; i++) {		// rows
 		for (j = 0; j < NPN; j++) { // columns
-			float c = 0.299 * img.r[(NPN - i - 1) * NPN + j] +
-				0.587 * img.g[(NPN - i - 1) * NPN + j] +
-				0.114 * img.b[(NPN - i - 1) * NPN + j];
+			float c = 0.299 * (float)img.r[(NPN - i - 1) * NPN + j] +
+				0.587 * (float)img.g[(NPN - i - 1) * NPN + j] +
+				0.114 * (float)img.b[(NPN - i - 1) * NPN + j];
 			pat0[i][j][0] = c;
 			pat0[i][j][1] = c;
 			pat0[i][j][2] = c;
@@ -1883,7 +1891,6 @@ void sobelFilter(const std::string& fname) {
 			//for (int a = 0; a < 3; a++) {
 			//	for (int b = 0; b < 3; b++) {
 			//		mag0x += pat0[i - 1 + a][j - 1 + b][0] * kernelx[a][b];
-
 			//		mag0y += pat0[i - 1 + a][j - 1 + b][0] * kernely[a][b];
 			//	}
 			//}
@@ -1923,6 +1930,9 @@ void sobelFilter(const std::string& fname) {
 			if (j < NPN - 1) mag0y += pat0[i][j + 1][0] * kernely[1][2];
 			if (i < NPN - 1 && j < NPN - 1) mag0y += pat0[i + 1][j + 1][0] * kernely[2][2];
 
+			//mag0x /= NPN;
+			//mag0y /= NPN;
+
 			mag1x = mag0x;
 			mag2x = mag0x;
 
@@ -1948,10 +1958,9 @@ void sobelFilter(const std::string& fname) {
 			pat[i][j][2] = v2;
 			pat[i][j][3] = alpha;
 
+			// Where the vectors are stored
 			patsvec[i][j][0] = mag0x;
 			patsvec[i][j][1] = mag0y;
-
-			//std::cout << "[" << i << "][" << j << "]: " << "{ " << mag0x << ", " << mag0y << " }" << std::endl;
 
 		}
 	}
@@ -2029,5 +2038,40 @@ void print_test_points() {
 	// bottom right
 	std::cout << "bottom right: (" << quadToTexture(10, -10, 0).x << ", " << quadToTexture(10, -10, 0).y << ")" << std::endl;
 	//std::cout << "bottom right: (" << patsvec[255][255][0] << ", " << patsvec[255][255][1] << ")" << std::endl;
+}
 
+void print_pixel_color_neighbors(int i, int j) {
+	ppm img(fname);
+
+	std::cout << "Pixel neighbors for (" << i << ", " << j << ": " << std::endl;
+
+	std::cout << "{" << (float)(img.r[(NPN - i - 2) * NPN + j - 1]) << ", "
+		<< (float)(img.g[(NPN - i - 2) * NPN + j - 1]) << ", "
+		<< (float)(img.b[(NPN - i - 2) * NPN + j - 1]) << "}"
+		<< " {" << (float)(img.r[(NPN - i - 1) * NPN + j - 1]) << ", "
+		<< (float)(img.g[(NPN - i - 1) * NPN + j - 1]) << ", "
+		<< (float)(img.b[(NPN - i - 1) * NPN + j - 1]) << "}"
+		<< " {" << (float)(img.r[(NPN - i) * NPN + j - 1]) << ", "
+		<< (float)(img.g[(NPN - i) * NPN + j - 1]) << ", "
+		<< (float)(img.b[(NPN - i) * NPN + j - 1]) << "}" << std::endl;
+
+	std::cout << "{" << (float)(img.r[(NPN - i - 2) * NPN + j]) << ", "
+		<< (float)(img.g[(NPN - i - 2) * NPN + j]) << ", "
+		<< (float)(img.b[(NPN - i - 2) * NPN + j]) << "}"
+		<< " {" << (float)(img.r[(NPN - i - 1) * NPN + j]) << ", "
+		<< (float)(img.g[(NPN - i - 1) * NPN + j]) << ", "
+		<< (float)(img.b[(NPN - i - 1) * NPN + j]) << "}"
+		<< " {" << (float)(img.r[(NPN - i) * NPN + j]) << ", "
+		<< (float)(img.g[(NPN - i) * NPN + j]) << ", "
+		<< (float)(img.b[(NPN - i) * NPN + j]) << "}" << std::endl;
+
+	std::cout << "{" << (float)(img.r[(NPN - i - 2) * NPN + j + 1]) << ", "
+		<< (float)(img.g[(NPN - i - 2) * NPN + j + 1]) << ", "
+		<< (float)(img.b[(NPN - i - 2) * NPN + j + 1]) << "}"
+		<< " {" << (float)(img.r[(NPN - i - 1) * NPN + j + 1]) << ", "
+		<< (float)(img.g[(NPN - i - 1) * NPN + j + 1]) << ", "
+		<< (float)(img.b[(NPN - i - 1) * NPN + j + 1]) << "}"
+		<< " {" << (float)(img.r[(NPN - i) * NPN + j + 1]) << ", "
+		<< (float)(img.g[(NPN - i) * NPN + j + 1]) << ", "
+		<< (float)(img.b[(NPN - i) * NPN + j + 1]) << "}" << std::endl;
 }

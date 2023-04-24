@@ -71,6 +71,8 @@ void ppm::read(const std::string& fname) {
 		g.resize(size);
 		b.resize(size);
 
+		// May have "255" before the RGB values, should add an edge case for that here
+
 		char aux;
 		for (unsigned int i = 0; i < size; ++i) {
 			inp.read(&aux, 1);
