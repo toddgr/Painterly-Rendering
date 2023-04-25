@@ -1509,11 +1509,11 @@ void findMinMaxField(icVector3& min, icVector3& max) {
 icVector3 quadToTexture(double x, double y, double z) {
 
 	// Convert x,y to texture space
-	double c = ((x * (cmax - cmin)) +
+	double c = ((y * (cmax - cmin)) +
 		((cmin * max.x) - (cmax * min.x))) / (max.x - min.x);
 	/*double r = ((y * (rmin - rmax)) +
 		((rmax * max.y) - (rmin * min.y))) / (max.y - min.y);*/
-	double r = ((y * (rmax - rmin)) +
+	double r = ((x * (rmax - rmin)) +
 		((rmin * max.y) - (rmax * min.y))) / (max.y - min.y);
 
 	//double c = ((x - min.x) / (max.x - min.x)) * (cmax - cmin) + cmin;
@@ -1888,18 +1888,14 @@ void sobelFilter(const std::string& fname) {
 	for (i = 1; i < NPN-1; i++) {		// row
 		for (j = 1; j < NPN - 1; j++) {	// column
 			// Initial magnitude for r,g,b (0,1,2) in the x and y directions
-			float mag0x = 0.0;
-			float mag1x = 0.0;
-			float mag2x = 0.0;
-			float mag0y = 0.0;
-			float mag1y = 0.0;
-			float mag2y = 0.0;
+			float magx = 0.0;
+			float magy = 0.0;
 
 			// Add magnitude weights from neighbors
 			//for (int a = 0; a < 3; a++) {
 			//	for (int b = 0; b < 3; b++) {
-			//		mag0x += pat0[i - 1 + a][j - 1 + b][0] * kernelx[a][b];
-			//		mag0y += pat0[i - 1 + a][j - 1 + b][0] * kernely[a][b];
+			//		magx += pat0[i - 1 + a][j - 1 + b][0] * kernelx[a][b];
+			//		magy += pat0[i - 1 + a][j - 1 + b][0] * kernely[a][b];
 			//	}
 			//}
 
@@ -1907,50 +1903,50 @@ void sobelFilter(const std::string& fname) {
 			// Trying the messier version
 			// xdir	
 			// Top row
-			if (i > 0 && j > 0) mag0x += pat0[i-1][j-1][0] * kernelx[0][0];
-			if (j > 0) mag0x += pat0[i][j-1][0] * kernelx[1][0];
-			if (i < NPN-1 && j > 0) mag0x += pat0[i+1][j-1][0] * kernelx[2][0];
+			if (i > 0 && j > 0) magx += pat0[i-1][j-1][0] * kernelx[0][0];
+			if (j > 0) magx += pat0[i][j-1][0] * kernelx[1][0];
+			if (i < NPN-1 && j > 0) magx += pat0[i+1][j-1][0] * kernelx[2][0];
 
 			// Middle row
-			if (i > 0) mag0x += pat0[i - 1][j][0] * kernelx[0][1];
-			mag0x += pat0[i][j][0] * kernelx[1][1];
-			if (i < NPN-1) mag0x += pat0[i+1][j][0] * kernelx[2][1];
+			if (i > 0) magx += pat0[i - 1][j][0] * kernelx[0][1];
+			magx += pat0[i][j][0] * kernelx[1][1];
+			if (i < NPN-1) magx += pat0[i+1][j][0] * kernelx[2][1];
 
 			// Bottom row
-			if (i >0 && j < NPN-1)mag0x += pat0[i-1][j+1][0] * kernelx[0][2];
-			if (j < NPN-1) mag0x += pat0[i][j+1][0] * kernelx[1][2];
-			if (i < NPN-1 && j < NPN-1) mag0x += pat0[i+1][j+1][0] * kernelx[2][2];
+			if (i >0 && j < NPN-1)magx += pat0[i-1][j+1][0] * kernelx[0][2];
+			if (j < NPN-1) magx += pat0[i][j+1][0] * kernelx[1][2];
+			if (i < NPN-1 && j < NPN-1) magx += pat0[i+1][j+1][0] * kernelx[2][2];
 
 
 			//// ydir
 			// Top row
-			if (i > 0 && j > 0) mag0y += pat0[i - 1][j - 1][0] * kernely[0][0];
-			if (j > 0) mag0y += pat0[i][j - 1][0] * kernely[1][0];
-			if (i < NPN - 1 && j > 0) mag0y += pat0[i + 1][j - 1][0] * kernely[2][0];
+			if (i > 0 && j > 0) magy += pat0[i - 1][j - 1][0] * kernely[0][0];
+			if (j > 0) magy += pat0[i][j - 1][0] * kernely[1][0];
+			if (i < NPN - 1 && j > 0) magy += pat0[i + 1][j - 1][0] * kernely[2][0];
 			
 			// Middle row
-			if (i > 0) mag0y += pat0[i - 1][j][0] * kernely[0][1];
-			mag0y += pat0[i][j][0] * kernely[1][1];
-			if (i < NPN - 1) mag0y += pat0[i + 1][j][0] * kernely[2][1];
+			if (i > 0) magy += pat0[i - 1][j][0] * kernely[0][1];
+			magy += pat0[i][j][0] * kernely[1][1];
+			if (i < NPN - 1) magy += pat0[i + 1][j][0] * kernely[2][1];
 
 			// Bottom row
-			if (i > 0 && j < NPN - 1) mag0y += pat0[i - 1][j + 1][0] * kernely[0][2];
-			if (j < NPN - 1) mag0y += pat0[i][j + 1][0] * kernely[1][2];
-			if (i < NPN - 1 && j < NPN - 1) mag0y += pat0[i + 1][j + 1][0] * kernely[2][2];
+			if (i > 0 && j < NPN - 1) magy += pat0[i - 1][j + 1][0] * kernely[0][2];
+			if (j < NPN - 1) magy += pat0[i][j + 1][0] * kernely[1][2];
+			if (i < NPN - 1 && j < NPN - 1) magy += pat0[i + 1][j + 1][0] * kernely[2][2];
 
 			//mag0x /= NPN;
 			//mag0y /= NPN;
 
-			mag1x = mag0x;
-			mag2x = mag0x;
+			magx = magx;
+			magx = magx;
 
-			mag1y = mag0y;
-			mag2y = mag0y;
+			magy = magy;
+			magy = magy;
 
 			// Average values for r, g, b
-			float v0 = std::sqrt(mag0x * mag0x + mag0y * mag0y);	// R gradient
-			float v1 = std::sqrt(mag1x * mag1x + mag1y * mag1y);	// G gradient
-			float v2 = std::sqrt(mag2x * mag2x + mag2y * mag2y);	// B gradient
+			float v0 = std::sqrt(magx * magx + magy * magy);	// R gradient
+			float v1 = std::sqrt(magx * magx + magy * magy);	// G gradient
+			float v2 = std::sqrt(magx * magx + magy * magy);	// B gradient
 
 			// Color value will be either black or white
 			if (v0 > 255) v0 = 255;
@@ -1969,14 +1965,14 @@ void sobelFilter(const std::string& fname) {
 
 
 			// Where the vectors are stored
-			auto mag = std::sqrt(mag0x * mag0x + mag0y * mag0y);
+			auto mag = std::sqrt(magx * magx + magy * magy);
 			if (mag != 0) {
-				patsvec[i][j][0] = mag0x / mag;
-				patsvec[i][j][1] = mag0y / mag;
+				patsvec[i][j][0] = magx / mag;
+				patsvec[i][j][1] = magy / mag;
 			}
 			else {
-				patsvec[i][j][0] = 0;
-				patsvec[i][j][1] = 0;
+				patsvec[i][j][0] = 0.;
+				patsvec[i][j][1] = 0.;
 			}
 
 			if (std::isinf(patsvec[i][j][0]) || std::isinf(patsvec[i][j][1]))
@@ -2009,17 +2005,17 @@ void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines)
 	// make dots along x and y axes
 	for (int i = -10; i <= 10; i++)
 	{
-	//	//for (int j = -10; j <= 10; j++) {
-	//	//	build_streamline(i, j);
-	//	//}
+		for (int j = -10; j <= 10; j++) {
+			build_streamline(i, j);
+		}
 	//	//icVector3 x_ax = icVector3(i, 0, 0);
 	//	//icVector3 y_ax = icVector3(0, i, 0);
 	//	//points->push_back(x_ax);
 	//	//points->push_back(y_ax);
 
 		//Build streamlines from each point on the axes
-		build_streamline(i, 0);
-		build_streamline(0, i);
+		//build_streamline(i, 0);
+		//build_streamline(0, i);
 	}
 
 	//build_streamline(0, 0);
@@ -2069,6 +2065,13 @@ void print_test_points() {
 	// bottom right
 	std::cout << "bottom right: (" << quadToTexture(10, -10, 0).x << ", " << quadToTexture(10, -10, 0).y << ")" << std::endl;
 	//std::cout << "bottom right: (" << patsvec[255][255][0] << ", " << patsvec[255][255][1] << ")" << std::endl;
+
+	std::cout << "---- MORE TEST POINTS ----" << std::endl;
+	for (int i = -10; i <= 10; i++) {
+		for (int j = -10; j <= 10; j++) {
+			std::cout << "(" << i << ", " << j << "): (" << quadToTexture(i, j, 0).x << ", " << quadToTexture(i, j, 0).y << ")" << std::endl;
+		}
+	}
 }
 
 void print_pixel_color_neighbors(int i, int j) {
