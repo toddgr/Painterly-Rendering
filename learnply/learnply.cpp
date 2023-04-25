@@ -1034,8 +1034,8 @@ void display_polyhedron(Polyhedron* poly)
 			glEnd();
 		}
 
-		displayImage();
-		glutPostRedisplay();
+		//displayImage();
+		//glutPostRedisplay();
 
 		// draw lines
 		for (int k = 0; k < streamlines.size(); k++)
