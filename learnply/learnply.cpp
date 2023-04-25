@@ -511,6 +511,7 @@ void keyboard(unsigned char key, int x, int y) {
 		draw_lines(&points, &streamlines);
 		print_test_points();
 		print_pixel_color_neighbors(64, 64);
+		print_pixel_color_neighbors(140, 140);
 		print_pixel_color_neighbors(192, 192);
 		glutPostRedisplay();
 	}
@@ -1510,19 +1511,26 @@ icVector3 quadToTexture(double x, double y, double z) {
 	// Convert x,y to texture space
 	double c = ((x * (cmax - cmin)) +
 		((cmin * max.x) - (cmax * min.x))) / (max.x - min.x);
-	double r = ((y * (rmin - rmax)) +
-		((rmax * max.y) - (rmin * min.y))) / (max.y - min.y);
+	/*double r = ((y * (rmin - rmax)) +
+		((rmax * max.y) - (rmin * min.y))) / (max.y - min.y);*/
+	double r = ((y * (rmax - rmin)) +
+		((rmin * max.y) - (rmax * min.y))) / (max.y - min.y);
 
+	//double c = ((x - min.x) / (max.x - min.x)) * (cmax - cmin) + cmin;
+	////double r = ((y - min.y) / (max.y - min.y)) * (rmax - rmin) + rmin;
+	//double r = ((y - min.y) / (max.y - min.y)) * (rmin - rmax) + rmax;
+	// r = rmax - r;
+	
 	// Find c,r vector in texture space
 	int ir = (int)r;
 	int ic = (int)c;
 
-	double vc, vr;
+	double vc = 0, vr = 0;
 
 	// Make sure that the vector is not out of bounds
 	if (ic > 0 || ir > 0 || ic < NPN-1 || ir < NPN-1) {
-		vc = patsvec[ic][ir][0];
-		vr = patsvec[ic][ir][1];
+		vc = patsvec[ic][ir][1];
+		vr = patsvec[ic][ir][0];
 	}
 	//else {
 	//	vc = 0.0;
@@ -1531,17 +1539,17 @@ icVector3 quadToTexture(double x, double y, double z) {
 
 
 	// Define vector with respect to c,r
-	vc += c;
-	vr += r;
+	//vc += c;
+	//vr += r;
 
-	// Convert c,r to x,y space
-	x = ((vc * (max.x - min.x)) -
-		((cmin * max.x) - (cmax * min.x))) / (cmax - cmin);
-	y = ((vr * (max.y - min.y)) -
-		((rmax * max.y) - (rmin * min.y))) / (rmin - rmax);
+	//// Convert c,r to x,y space
+	//x = ((vc * (max.x - min.x)) -
+	//	((cmin * max.x) - (cmax * min.x))) / (cmax - cmin);
+	//y = ((vr * (max.y - min.y)) -
+	//	((rmax * max.y) - (rmin * min.y))) / (rmin - rmax);
 
 	//std::cout << x << ", " << y << ", " << z << std::endl;
-	return icVector3(x, y, z);
+	return icVector3(vc, vr, 0.);
 }
 
 
@@ -1551,9 +1559,9 @@ icVector3 quadToTexture(double x, double y, double z) {
 Vertex* find_vertex(double xx, double yy) {
 	for (int i = 0; i < poly->nverts; i++) {
 		Vertex* v = poly->vlist[i];
-		v->vx = quadToTexture(v->x, v->y, v->z).x;
-		v->vy = quadToTexture(v->x, v->y, v->z).y;
-		if (v->x == xx && v->y == yy) {
+		if ( std::abs(v->x - xx) < 1.0e-6 && std::abs(v->y - yy)< 1.0e-6 ) {
+			v->vx = quadToTexture(xx, yy, 0).x;
+			v->vy = quadToTexture(xx, yy, 0).y;
 			return v;
 		}
 	}
@@ -1617,9 +1625,9 @@ void imageFilter(const std::string& fname) {
 	for (i = 0; i < NPN; i++) {		// rows
 		for (j = 0; j < NPN; j++) { // columns
 			
-			pat0[i][j][0] = img.g[(NPN - i - 1) * NPN + j];
-			pat0[i][j][1] = img.b[(NPN - i - 1) * NPN + j];
-			pat0[i][j][2] = img.r[(NPN - i - 1) * NPN + j];
+			pat0[i][j][0] = img.r[(NPN - i - 1) * NPN + j];
+			pat0[i][j][1] = img.g[(NPN - i - 1) * NPN + j];
+			pat0[i][j][2] = img.b[(NPN - i - 1) * NPN + j];
 			pat0[i][j][3] = alpha;
 		}
 	}
@@ -1866,7 +1874,7 @@ void sobelFilter(const std::string& fname) {
 	int i, j;
 	for (i = 0; i < NPN; i++) {		// rows
 		for (j = 0; j < NPN; j++) { // columns
-			float c = 0.299 * (float)img.r[(NPN - i - 1) * NPN + j] +
+			float c = 0.299 * (float)img.r[(NPN - i - 1) * NPN + j]+
 				0.587 * (float)img.g[(NPN - i - 1) * NPN + j] +
 				0.114 * (float)img.b[(NPN - i - 1) * NPN + j];
 			pat0[i][j][0] = c;
@@ -1877,8 +1885,8 @@ void sobelFilter(const std::string& fname) {
 	}
 
 	// Sobel filter
-	for (i = 0; i < NPN; i++) {		// row
-		for (j = 0; j < NPN; j++) {	// column
+	for (i = 1; i < NPN-1; i++) {		// row
+		for (j = 1; j < NPN - 1; j++) {	// column
 			// Initial magnitude for r,g,b (0,1,2) in the x and y directions
 			float mag0x = 0.0;
 			float mag1x = 0.0;
@@ -1958,12 +1966,35 @@ void sobelFilter(const std::string& fname) {
 			pat[i][j][2] = v2;
 			pat[i][j][3] = alpha;
 
+
+
 			// Where the vectors are stored
-			patsvec[i][j][0] = mag0x;
-			patsvec[i][j][1] = mag0y;
+			auto mag = std::sqrt(mag0x * mag0x + mag0y * mag0y);
+			if (mag != 0) {
+				patsvec[i][j][0] = mag0x / mag;
+				patsvec[i][j][1] = mag0y / mag;
+			}
+			else {
+				patsvec[i][j][0] = 0;
+				patsvec[i][j][1] = 0;
+			}
+
+			if (std::isinf(patsvec[i][j][0]) || std::isinf(patsvec[i][j][1]))
+			{
+				std::cout << "find infinity" << std::endl;
+			}
+			
 
 		}
 	}
+	//for (i = 0; i < NPN; i++) {		// row
+	//	for (j = 0; j < NPN; j++) {	// column
+	//		if (0 == i || 0 == j || NPN - 1 == i || NPN - 1 == j) {
+	//			patsvec[i][j][0] = 0;
+	//			patsvec[i][j][1] = 0;
+	//		}
+	//	}
+	//}
 
 	glNewList(1, GL_COMPILE);
 	glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0,
@@ -1976,8 +2007,8 @@ void sobelFilter(const std::string& fname) {
 void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines)
 {
 	// make dots along x and y axes
-	//for (int i = -10; i <= 10; i++)
-	//{
+	for (int i = -10; i <= 10; i++)
+	{
 	//	//for (int j = -10; j <= 10; j++) {
 	//	//	build_streamline(i, j);
 	//	//}
@@ -1986,20 +2017,20 @@ void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines)
 	//	//points->push_back(x_ax);
 	//	//points->push_back(y_ax);
 
-	//	// Build streamlines from each point on the axes
-	//	build_streamline(i, 0);
-	//	build_streamline(0, i);
-	//}
+		//Build streamlines from each point on the axes
+		build_streamline(i, 0);
+		build_streamline(0, i);
+	}
 
-	build_streamline(0, 0);
-	build_streamline(-10, 10);
-	build_streamline(0, 10);
-	build_streamline(10, 10);
-	build_streamline(-10, 0);
-	build_streamline(10, 0);
-	build_streamline(-10, -10);
-	build_streamline(0, -10);
-	build_streamline(10, -10);
+	//build_streamline(0, 0);
+	//build_streamline(-10, 10);
+	//build_streamline(0, 10);
+	//build_streamline(10, 10);
+	//build_streamline(-10, 0);
+	//build_streamline(10, 0);
+	//build_streamline(-10, -10);
+	//build_streamline(0, -10);
+	//build_streamline(10, -10);
 }
 
 void print_test_points() {
@@ -2043,7 +2074,7 @@ void print_test_points() {
 void print_pixel_color_neighbors(int i, int j) {
 	ppm img(fname);
 
-	std::cout << "Pixel neighbors for (" << i << ", " << j << ": " << std::endl;
+	std::cout << "Pixel neighbors for (" << i << ", " << j << "): " << std::endl;
 
 	std::cout << "{" << (float)(img.r[(NPN - i - 2) * NPN + j - 1]) << ", "
 		<< (float)(img.g[(NPN - i - 2) * NPN + j - 1]) << ", "
