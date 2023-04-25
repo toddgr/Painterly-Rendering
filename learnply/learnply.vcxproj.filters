@@ -39,10 +39,7 @@
     <ClCompile Include="Polyline.cpp">
       <Filter>Polyline</Filter>
     </ClCompile>
-    <ClCompile Include="IBFV.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="VectorFieldTopology.cpp">
+    <ClCompile Include="Streamline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ppm.cpp">
@@ -80,16 +77,16 @@
     <ClInclude Include="Polyline.h">
       <Filter>Polyline</Filter>
     </ClInclude>
-    <ClInclude Include="IBFV.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="VectorFieldTopology.h">
+    <ClInclude Include="Streamline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ppm.h">
       <Filter>Image</Filter>
     </ClInclude>
     <ClInclude Include="Sobel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Desktop\streamline\learnply\drawUtil.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

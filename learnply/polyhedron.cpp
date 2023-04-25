@@ -21,11 +21,11 @@ static PlyFile* in_ply;
 /******************************************************************************
 Read in a polyhedron from a file.
 ******************************************************************************/
-Polyhedron::Polyhedron(FILE *file)
+Polyhedron::Polyhedron(FILE* file)
 {
 	int i, j;
 	int elem_count;
-	char *elem_name;
+	char* elem_name;
 
 	/*** Read in the original PLY object ***/
 	in_ply = read_ply(file);
@@ -39,7 +39,7 @@ Polyhedron::Polyhedron(FILE *file)
 
 			/* create a vertex list to hold all the vertices */
 			nverts = max_verts = elem_count;
-			vlist = new Vertex *[nverts];
+			vlist = new Vertex * [nverts];
 
 			/* set up for getting vertex elements */
 
@@ -57,7 +57,7 @@ Polyhedron::Polyhedron(FILE *file)
 			/* grab all the vertex elements */
 			for (j = 0; j < nverts; j++) {
 				Vertex_io vert;
-				get_element_ply(in_ply, (void *)&vert);
+				get_element_ply(in_ply, (void*)&vert);
 
 				/* copy info from the "vert" structure */
 				vlist[j] = new Vertex(vert.x, vert.y, vert.z);
@@ -74,7 +74,7 @@ Polyhedron::Polyhedron(FILE *file)
 
 			/* create a list to hold all the face elements */
 			nquads = max_quads = elem_count;
-			qlist = new Quad *[nquads];
+			qlist = new Quad * [nquads];
 
 			/* set up for getting face elements */
 			setup_property_ply(in_ply, &face_props[0]);
@@ -83,7 +83,7 @@ Polyhedron::Polyhedron(FILE *file)
 			/* grab all the face elements */
 			for (j = 0; j < elem_count; j++) {
 				Face_io face;
-				get_element_ply(in_ply, (void *)&face);
+				get_element_ply(in_ply, (void*)&face);
 
 				if (face.nverts != 4) {
 					fprintf(stderr, "Face has %d vertices (should be four).\n",
@@ -93,10 +93,10 @@ Polyhedron::Polyhedron(FILE *file)
 
 				/* copy info from the "face" structure */
 				qlist[j] = new Quad;
-				qlist[j]->verts[0] = (Vertex *)face.verts[0];
-				qlist[j]->verts[1] = (Vertex *)face.verts[1];
-				qlist[j]->verts[2] = (Vertex *)face.verts[2];
-				qlist[j]->verts[3] = (Vertex *)face.verts[3];
+				qlist[j]->verts[0] = (Vertex*)face.verts[0];
+				qlist[j]->verts[1] = (Vertex*)face.verts[1];
+				qlist[j]->verts[2] = (Vertex*)face.verts[2];
+				qlist[j]->verts[3] = (Vertex*)face.verts[3];
 				qlist[j]->other_props = face.other_props;
 			}
 		}
@@ -119,11 +119,11 @@ Polyhedron::Polyhedron(FILE *file)
 
 	for (i = nquads - 1; i >= 0; i--) {
 
-		Quad *quad = qlist[i];
-		Vertex *v0 = quad->verts[0];
-		Vertex *v1 = quad->verts[1];
-		Vertex *v2 = quad->verts[2];
-		Vertex *v3 = quad->verts[3];
+		Quad* quad = qlist[i];
+		Vertex* v0 = quad->verts[0];
+		Vertex* v1 = quad->verts[1];
+		Vertex* v2 = quad->verts[2];
+		Vertex* v3 = quad->verts[3];
 
 		if (v0 == v1 || v1 == v2 || v2 == v3 || v3 == v0) {
 			free(qlist[i]);
@@ -152,11 +152,11 @@ void Polyhedron::write_info()
 /******************************************************************************
 Write out a polyhedron to a file.
 ******************************************************************************/
-void Polyhedron::write_file(FILE *file)
+void Polyhedron::write_file(FILE* file)
 {
 	int i;
-	PlyFile *ply;
-	char **elist;
+	PlyFile* ply;
+	char** elist;
 	int num_elem_types;
 
 	/*** Write out the transformed PLY object ***/
@@ -200,7 +200,7 @@ void Polyhedron::write_file(FILE *file)
 		vert.z = vlist[i]->z;
 		vert.other_props = vlist[i]->other_props;
 
-		put_element_ply(ply, (void *)&vert);
+		put_element_ply(ply, (void*)&vert);
 	}
 
 	/* index all the vertices */
@@ -223,13 +223,102 @@ void Polyhedron::write_file(FILE *file)
 		face.verts[3] = qlist[i]->verts[3]->index;
 		face.other_props = qlist[i]->other_props;
 
-		put_element_ply(ply, (void *)&face);
+		put_element_ply(ply, (void*)&face);
 	}
 	put_other_elements_ply(ply);
 
 	close_ply(ply);
 	free_ply(ply);
 }
+
+Vertex* Polyhedron::other_vert(Vertex* vert, Edge* edge)
+{
+	if (edge->verts[0] == vert)
+		return edge->verts[1];
+	else if (edge->verts[1] == vert)
+		return edge->verts[0];
+	else
+		return NULL;
+}
+
+Edge* Polyhedron::find_edge(Vertex* v1, Vertex* v2)
+{
+	Edge* edge;
+	for (int i = 0; i < v1->nedges; i++)
+	{
+		edge = v1->edges[i];
+		if (other_vert(v1, edge) == v2)
+			return edge;
+	}
+	return NULL;
+}
+
+Quad* Polyhedron::find_quad(double x, double y)
+{
+	for (int i = 0; i < nquads; i++)
+	{
+		Quad* quad = qlist[i];
+		double x1, y1, x2, y2;
+		// Find x1, x2, y1, y2
+		// x1 is the smallest x coordinate of the 4 vertices
+		// x2 is the largest x coordinate of the 4 vertices
+		// y1 is the smallest y coordinate of the 4 vertices
+		// y2 is the largest y coordinate of the 4 vertices
+		x1 = smallest_x(quad);
+		x2 = largest_x(quad);
+		y1 = smallest_y(quad);
+		y2 = largest_y(quad);
+		if (x >= x1 && x <= x2 && y >= y1 && y <= y2)
+			return quad;
+	}
+	return NULL;
+}
+
+double Polyhedron::smallest_x(Quad* temp) {
+	double MIN = DBL_MAX;
+	for (int i = 0; i < 4; i++) {
+		Vertex* v_ptr = temp->verts[i];
+		if (v_ptr->x < MIN) {
+			MIN = v_ptr->x;
+		}
+	}
+	return MIN;
+}
+
+double Polyhedron::largest_x(Quad* temp) {
+	double MAX = -DBL_MAX;
+	for (int i = 0; i < 4; i++) {
+		Vertex* v_ptr = temp->verts[i];
+		if (v_ptr->x > MAX) {
+			MAX = (v_ptr->x);
+		}
+	}
+	temp;
+	return MAX;
+}
+
+double Polyhedron::smallest_y(Quad* temp) {
+	double MIN = DBL_MAX;
+	for (int i = 0; i < 4; i++) {
+		Vertex* v_ptr = temp->verts[i];
+		if (v_ptr->y < MIN) {
+			MIN = v_ptr->y;
+		}
+	}
+	return MIN;
+}
+
+double Polyhedron::largest_y(Quad* temp) {
+	double MAX = -DBL_MAX;
+	for (int i = 0; i < 4; i++) {
+		Vertex* v_ptr = temp->verts[i];
+		if (v_ptr->y > MAX) {
+			MAX = v_ptr->y;
+		}
+	}
+	return MAX;
+}
+
 
 void Polyhedron::initialize()
 {
@@ -279,11 +368,11 @@ Exit:
   return the matching face, or NULL if there is no such face
 ******************************************************************************/
 
-Quad *Polyhedron::find_common_edge(Quad *f1, Vertex *v1, Vertex *v2)
+Quad* Polyhedron::find_common_edge(Quad* f1, Vertex* v1, Vertex* v2)
 {
 	int i, j;
-	Quad *f2;
-	Quad *adjacent = NULL;
+	Quad* f2;
+	Quad* adjacent = NULL;
 
 	/* look through all faces of the first vertex */
 
@@ -341,17 +430,17 @@ Entry:
   v1,v2 - two vertices of f1 that define edge
 ******************************************************************************/
 
-void Polyhedron::create_edge(Vertex *v1, Vertex *v2)
+void Polyhedron::create_edge(Vertex* v1, Vertex* v2)
 {
 	int i, j;
-	Quad *f;
+	Quad* f;
 
 	/* make sure there is enough room for a new edge */
 
 	if (nedges >= max_edges) {
 
 		max_edges += 100;
-		Edge **list = new Edge *[max_edges];
+		Edge** list = new Edge * [max_edges];
 
 		/* copy the old list to the new one */
 		for (i = 0; i < nedges; i++)
@@ -365,7 +454,7 @@ void Polyhedron::create_edge(Vertex *v1, Vertex *v2)
 	/* create the edge */
 
 	elist[nedges] = new Edge;
-	Edge *e = elist[nedges];
+	Edge* e = elist[nedges];
 	e->index = nedges;
 	e->verts[0] = v1;
 	e->verts[1] = v2;
@@ -390,9 +479,9 @@ void Polyhedron::create_edge(Vertex *v1, Vertex *v2)
 
 	/* make room for the face pointers (at least two) */
 	if (e->nquads < 2)
-		e->quads = new Quad *[2];
+		e->quads = new Quad * [2];
 	else
-		e->quads = new Quad *[e->nquads];
+		e->quads = new Quad * [e->nquads];
 
 	/* create pointers from edges to faces and vice-versa */
 
@@ -434,8 +523,8 @@ Create edges.
 void Polyhedron::create_edges()
 {
 	int i, j;
-	Quad *f;
-	Vertex *v1, *v2;
+	Quad* f;
+	Vertex* v1, * v2;
 	double count = 0;
 
 	/* count up how many edges we may require */
@@ -445,7 +534,7 @@ void Polyhedron::create_edges()
 		for (j = 0; j < 4; j++) {
 			v1 = f->verts[j];
 			v2 = f->verts[(j + 1) % 4];
-			Quad *result = find_common_edge(f, v1, v2);
+			Quad* result = find_common_edge(f, v1, v2);
 			if (result)
 				count += 0.5;
 			else
@@ -460,7 +549,7 @@ void Polyhedron::create_edges()
 	/* create space for edge list */
 
 	max_edges = (int)(count + 10);  /* leave some room for expansion */
-	elist = new Edge *[max_edges];
+	elist = new Edge * [max_edges];
 	nedges = 0;
 
 	/* zero out all the pointers from faces to edges */
@@ -492,8 +581,8 @@ Create pointers from vertices to faces.
 void Polyhedron::vertex_to_quad_ptrs()
 {
 	int i, j;
-	Quad *f;
-	Vertex *v;
+	Quad* f;
+	Vertex* v;
 
 	/* zero the count of number of pointers to faces */
 
@@ -511,8 +600,8 @@ void Polyhedron::vertex_to_quad_ptrs()
 	/* allocate memory for face pointers of vertices */
 
 	for (i = 0; i < nverts; i++) {
-		vlist[i]->quads = (Quad **)
-			malloc(sizeof(Quad *) * vlist[i]->max_quads);
+		vlist[i]->quads = (Quad**)
+			malloc(sizeof(Quad*) * vlist[i]->max_quads);
 		vlist[i]->nquads = 0;
 	}
 
@@ -534,8 +623,8 @@ Create pointers from vertices to edges.
 
 void Polyhedron::vertex_to_edge_ptrs()
 {
-	Edge *e;
-	Vertex *v;
+	Edge* e;
+	Vertex* v;
 
 	/* zero the count of number of pointers to faces */
 
@@ -553,8 +642,8 @@ void Polyhedron::vertex_to_edge_ptrs()
 	/* allocate memory for edge pointers of vertices */
 
 	for (int i = 0; i < nverts; i++) {
-		vlist[i]->edges = (Edge **)
-			malloc(sizeof(Edge *) * vlist[i]->max_edges);
+		vlist[i]->edges = (Edge**)
+			malloc(sizeof(Edge*) * vlist[i]->max_edges);
 		vlist[i]->nedges = 0;
 	}
 
@@ -576,7 +665,7 @@ Find the other quad that is incident on an edge, or NULL if there is
 no other.
 ******************************************************************************/
 
-Quad *Polyhedron::other_quad(Edge *edge, Quad *quad)
+Quad* Polyhedron::other_quad(Edge* edge, Quad* quad)
 {
 	/* search for any other quad */
 	for (int i = 0; i < edge->nquads; i++)
@@ -595,11 +684,11 @@ Entry:
   v - vertex whose face list is to be ordered
 ******************************************************************************/
 
-void Polyhedron::order_vertex_to_quad_ptrs(Vertex *v)
+void Polyhedron::order_vertex_to_quad_ptrs(Vertex* v)
 {
 	int i, j;
-	Quad *f;
-	Quad *fnext;
+	Quad* f;
+	Quad* fnext;
 	int nf;
 	int vindex;
 	int boundary;
@@ -704,7 +793,7 @@ Entry:
 Exit:
   returns index in face's list, or -1 if vertex not found
 ******************************************************************************/
-int Polyhedron::face_to_vertex_ref(Quad *f, Vertex *v)
+int Polyhedron::face_to_vertex_ref(Quad* f, Vertex* v)
 {
 	int j;
 	int vindex = -1;
@@ -803,7 +892,7 @@ void Polyhedron::calc_face_normals_and_area()
 {
 	unsigned int i, j;
 	icVector3 v0, v1, v2, v3;
-	Quad *temp_q;
+	Quad* temp_q;
 	double edge_length[4];
 
 	area = 0.0;
@@ -818,8 +907,8 @@ void Polyhedron::calc_face_normals_and_area()
 
 		double temp_s1 = (edge_length[0] + edge_length[1] + dia_length) / 2.0;
 		double temp_s2 = (edge_length[2] + edge_length[3] + dia_length) / 2.0;
-		qlist[i]->area = sqrt(temp_s1*(temp_s1 - edge_length[0])*(temp_s1 - edge_length[1])*(temp_s1 - dia_length)) +
-			sqrt(temp_s2*(temp_s2 - edge_length[2])*(temp_s2 - edge_length[3])*(temp_s2 - dia_length));
+		qlist[i]->area = sqrt(temp_s1 * (temp_s1 - edge_length[0]) * (temp_s1 - edge_length[1]) * (temp_s1 - dia_length)) +
+			sqrt(temp_s2 * (temp_s2 - edge_length[2]) * (temp_s2 - edge_length[3]) * (temp_s2 - dia_length));
 
 		area += qlist[i]->area;
 		temp_q = qlist[i];
@@ -834,7 +923,7 @@ void Polyhedron::calc_face_normals_and_area()
 	icVector3 test = center;
 	for (i = 0; i < nquads; i++) {
 		icVector3 cent(vlist[qlist[i]->verts[0]->index]->x, vlist[qlist[i]->verts[0]->index]->y, vlist[qlist[i]->verts[0]->index]->z);
-		signedvolume += dot(test - cent, qlist[i]->normal)*qlist[i]->area;
+		signedvolume += dot(test - cent, qlist[i]->normal) * qlist[i]->area;
 	}
 	signedvolume /= area;
 	if (signedvolume < 0)

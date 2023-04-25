@@ -131,7 +131,6 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="IBFV.cpp" />
     <ClCompile Include="learnply.cpp" />
     <ClCompile Include="ply.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
@@ -152,11 +151,11 @@
       <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">EnableFastChecks</BasicRuntimeChecks>
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
     </ClCompile>
-    <ClCompile Include="VectorFieldTopology.cpp" />
+    <ClCompile Include="Streamline.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\..\Desktop\streamline\learnply\drawUtil.h" />
     <ClInclude Include="glError.h" />
-    <ClInclude Include="IBFV.h" />
     <ClInclude Include="icMatrix.H" />
     <ClInclude Include="icVector.H" />
     <ClInclude Include="ply_io.h" />
@@ -167,7 +166,7 @@
     <ClInclude Include="Sobel.h" />
     <ClInclude Include="tmatrix.h" />
     <ClInclude Include="trackball.h" />
-    <ClInclude Include="VectorFieldTopology.h" />
+    <ClInclude Include="Streamline.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\data\image\Lenna.ppm" />
