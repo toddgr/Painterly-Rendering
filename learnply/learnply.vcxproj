@@ -138,7 +138,6 @@
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
     </ClCompile>
     <ClCompile Include="polyhedron.cpp" />
-    <ClCompile Include="Polyline.cpp" />
     <ClCompile Include="ppm.cpp" />
     <ClCompile Include="Sobel.cpp" />
     <ClCompile Include="tmatrix.cpp">
@@ -161,7 +160,6 @@
     <ClInclude Include="ply_io.h" />
     <ClInclude Include="ply.h" />
     <ClInclude Include="polyhedron.h" />
-    <ClInclude Include="Polyline.h" />
     <ClInclude Include="ppm.h" />
     <ClInclude Include="Sobel.h" />
     <ClInclude Include="tmatrix.h" />
