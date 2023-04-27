@@ -66,9 +66,11 @@ const double STEP = 0.01; // You should experiment to find the optimal step size
 const int STEP_MAX = 10000; // Upper limit of steps to take for tracing each streamline.
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
-const std::string fname = "../data/image/bysmall.ppm";
+const std::string fname = "../data/image/green-blue.ppm";
 int alpha = (255 * 0.2);
-float patsvec[NPN][NPN][2]; // For storing the edge field
+ppm img(fname);
+float edge_vectors[NPN][NPN][2]; // For storing the edge field
+GLubyte image_colors[NPN][NPN][4];	// For accessing pixel colors
 
 icVector3 min, max;
 // min and max texture coords
@@ -113,7 +115,7 @@ void build_streamline(double x, double y);
 
 void findMinMaxField(icVector3& min, icVector3& max);
 icVector3 quadToTexture(double x, double y, double z);
-icVector3 textureToQuad(int c, int r, int w);
+icVector3 findPixelColor(icVector3 v);
 
 // For displaying image
 void initImage();
@@ -1529,8 +1531,8 @@ icVector3 quadToTexture(double x, double y, double z) {
 
 	// Make sure that the vector is not out of bounds
 	if (ic > 0 || ir > 0 || ic < NPN-1 || ir < NPN-1) {
-		vc = patsvec[ic][ir][1];
-		vr = patsvec[ic][ir][0];
+		vc = edge_vectors[ic][ir][1];
+		vr = edge_vectors[ic][ir][0];
 	}
 	//else {
 	//	vc = 0.0;
@@ -1550,6 +1552,21 @@ icVector3 quadToTexture(double x, double y, double z) {
 
 	//std::cout << x << ", " << y << ", " << z << std::endl;
 	return icVector3(vc, vr, 0.);
+}
+
+// Find the color of a pixel given a coordinate on the mesh
+icVector3 findPixelColor(icVector3 v) {
+	// v is a vertex in the mesh space
+	// convert to pixel space
+	double c = ((v.y * (cmax - cmin)) +
+		((cmin * max.x) - (cmax * min.x))) / (max.x - min.x);
+	double r = ((v.x * (rmax - rmin)) +
+		((rmin * max.y) - (rmax * min.y))) / (max.y - min.y);
+	
+	// find rgb values at a given pixel
+
+	// return
+	return icVector3(c, r, 0.);
 }
 
 
@@ -1616,25 +1633,23 @@ void imageFilter(const std::string& fname) {
 		{0, 0, 0},
 		{1, 2, 1} };
 
-	ppm img(fname);
-	GLubyte pat[NPN][NPN][4];	// image before filter is applied - intensity
-	GLubyte pat0[NPN][NPN][4];	// image after filter is applied - edge field?
+	GLubyte pat[NPN][NPN][4];	// image before filter is applied
 
 	// Set color of each pixel
 	int i, j;
 	for (i = 0; i < NPN; i++) {		// rows
 		for (j = 0; j < NPN; j++) { // columns
 			
-			pat0[i][j][0] = img.r[(NPN - i - 1) * NPN + j];
-			pat0[i][j][1] = img.g[(NPN - i - 1) * NPN + j];
-			pat0[i][j][2] = img.b[(NPN - i - 1) * NPN + j];
-			pat0[i][j][3] = alpha;
+			image_colors[i][j][0] = img.r[(NPN - i - 1) * NPN + j];
+			image_colors[i][j][1] = img.g[(NPN - i - 1) * NPN + j];
+			image_colors[i][j][2] = img.b[(NPN - i - 1) * NPN + j];
+			image_colors[i][j][3] = alpha;
 		}
 	}
 
 	glNewList(1, GL_COMPILE);
 	glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0,
-		GL_RGBA, GL_UNSIGNED_BYTE, pat0);
+		GL_RGBA, GL_UNSIGNED_BYTE, image_colors);
 	glEndList();
 
 }
@@ -1866,9 +1881,8 @@ void sobelFilter(const std::string& fname) {
 		{0, 0, 0},
 		{1, 2, 1} };
 
-	ppm img(fname);
-	GLubyte pat0[NPN][NPN][4];	// image before filter is applied - intensity
-	GLubyte pat[NPN][NPN][4];
+	GLubyte intensity[NPN][NPN][4];	// image before filter is applied - intensity
+	GLubyte sobelpat[NPN][NPN][4];
 
 	// Set color of each pixel to its intensity
 	int i, j;
@@ -1877,10 +1891,10 @@ void sobelFilter(const std::string& fname) {
 			float c = 0.299 * (float)img.r[(NPN - i - 1) * NPN + j]+
 				0.587 * (float)img.g[(NPN - i - 1) * NPN + j] +
 				0.114 * (float)img.b[(NPN - i - 1) * NPN + j];
-			pat0[i][j][0] = c;
-			pat0[i][j][1] = c;
-			pat0[i][j][2] = c;
-			pat0[i][j][3] = alpha;
+			intensity[i][j][0] = c;
+			intensity[i][j][1] = c;
+			intensity[i][j][2] = c;
+			intensity[i][j][3] = alpha;
 		}
 	}
 
@@ -1903,36 +1917,36 @@ void sobelFilter(const std::string& fname) {
 			// Trying the messier version
 			// xdir	
 			// Top row
-			if (i > 0 && j > 0) magx += pat0[i-1][j-1][0] * kernelx[0][0];
-			if (j > 0) magx += pat0[i][j-1][0] * kernelx[1][0];
-			if (i < NPN-1 && j > 0) magx += pat0[i+1][j-1][0] * kernelx[2][0];
+			if (i > 0 && j > 0) magx += intensity[i-1][j-1][0] * kernelx[0][0];
+			if (j > 0) magx += intensity[i][j-1][0] * kernelx[1][0];
+			if (i < NPN-1 && j > 0) magx += intensity[i+1][j-1][0] * kernelx[2][0];
 
 			// Middle row
-			if (i > 0) magx += pat0[i - 1][j][0] * kernelx[0][1];
-			magx += pat0[i][j][0] * kernelx[1][1];
-			if (i < NPN-1) magx += pat0[i+1][j][0] * kernelx[2][1];
+			if (i > 0) magx += intensity[i - 1][j][0] * kernelx[0][1];
+			magx += intensity[i][j][0] * kernelx[1][1];
+			if (i < NPN-1) magx += intensity[i+1][j][0] * kernelx[2][1];
 
 			// Bottom row
-			if (i >0 && j < NPN-1)magx += pat0[i-1][j+1][0] * kernelx[0][2];
-			if (j < NPN-1) magx += pat0[i][j+1][0] * kernelx[1][2];
-			if (i < NPN-1 && j < NPN-1) magx += pat0[i+1][j+1][0] * kernelx[2][2];
+			if (i >0 && j < NPN-1)magx += intensity[i-1][j+1][0] * kernelx[0][2];
+			if (j < NPN-1) magx += intensity[i][j+1][0] * kernelx[1][2];
+			if (i < NPN-1 && j < NPN-1) magx += intensity[i+1][j+1][0] * kernelx[2][2];
 
 
 			//// ydir
 			// Top row
-			if (i > 0 && j > 0) magy += pat0[i - 1][j - 1][0] * kernely[0][0];
-			if (j > 0) magy += pat0[i][j - 1][0] * kernely[1][0];
-			if (i < NPN - 1 && j > 0) magy += pat0[i + 1][j - 1][0] * kernely[2][0];
+			if (i > 0 && j > 0) magy += intensity[i - 1][j - 1][0] * kernely[0][0];
+			if (j > 0) magy += intensity[i][j - 1][0] * kernely[1][0];
+			if (i < NPN - 1 && j > 0) magy += intensity[i + 1][j - 1][0] * kernely[2][0];
 			
 			// Middle row
-			if (i > 0) magy += pat0[i - 1][j][0] * kernely[0][1];
-			magy += pat0[i][j][0] * kernely[1][1];
-			if (i < NPN - 1) magy += pat0[i + 1][j][0] * kernely[2][1];
+			if (i > 0) magy += intensity[i - 1][j][0] * kernely[0][1];
+			magy += intensity[i][j][0] * kernely[1][1];
+			if (i < NPN - 1) magy += intensity[i + 1][j][0] * kernely[2][1];
 
 			// Bottom row
-			if (i > 0 && j < NPN - 1) magy += pat0[i - 1][j + 1][0] * kernely[0][2];
-			if (j < NPN - 1) magy += pat0[i][j + 1][0] * kernely[1][2];
-			if (i < NPN - 1 && j < NPN - 1) magy += pat0[i + 1][j + 1][0] * kernely[2][2];
+			if (i > 0 && j < NPN - 1) magy += intensity[i - 1][j + 1][0] * kernely[0][2];
+			if (j < NPN - 1) magy += intensity[i][j + 1][0] * kernely[1][2];
+			if (i < NPN - 1 && j < NPN - 1) magy += intensity[i + 1][j + 1][0] * kernely[2][2];
 
 			//mag0x /= NPN;
 			//mag0y /= NPN;
@@ -1957,25 +1971,25 @@ void sobelFilter(const std::string& fname) {
 			if (v2 < 0) v2 = 0;
 
 			// Assign RGB values to current pixel for display
-			pat[i][j][0] = v0;
-			pat[i][j][1] = v1;
-			pat[i][j][2] = v2;
-			pat[i][j][3] = alpha;
+			sobelpat[i][j][0] = v0;
+			sobelpat[i][j][1] = v1;
+			sobelpat[i][j][2] = v2;
+			sobelpat[i][j][3] = alpha;
 
 
 
 			// Where the vectors are stored
 			auto mag = std::sqrt(magx * magx + magy * magy);
 			if (mag != 0) {
-				patsvec[i][j][0] = magx / mag;
-				patsvec[i][j][1] = magy / mag;
+				edge_vectors[i][j][0] = magx / mag;
+				edge_vectors[i][j][1] = magy / mag;
 			}
 			else {
-				patsvec[i][j][0] = 0.;
-				patsvec[i][j][1] = 0.;
+				edge_vectors[i][j][0] = 0.;
+				edge_vectors[i][j][1] = 0.;
 			}
 
-			if (std::isinf(patsvec[i][j][0]) || std::isinf(patsvec[i][j][1]))
+			if (std::isinf(edge_vectors[i][j][0]) || std::isinf(edge_vectors[i][j][1]))
 			{
 				std::cout << "find infinity" << std::endl;
 			}
@@ -1994,7 +2008,7 @@ void sobelFilter(const std::string& fname) {
 
 	glNewList(1, GL_COMPILE);
 	glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0,
-		GL_RGBA, GL_UNSIGNED_BYTE, pat);
+		GL_RGBA, GL_UNSIGNED_BYTE, sobelpat);
 	glEndList();
 
 }
