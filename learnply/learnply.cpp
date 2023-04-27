@@ -528,7 +528,7 @@ void keyboard(unsigned char key, int x, int y) {
 		sobelFilter(fname);
 
 		draw_lines(&points, &streamlines);
-		print_test_points();
+		//print_test_points();
 		glutPostRedisplay();
 		break;
 
@@ -1067,7 +1067,7 @@ void display_polyhedron(Polyhedron* poly)
 		glEnable(GL_LIGHT1);
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		GLfloat mat_diffuse[4] = { 1.0, 1.0, 1.0, 0.0 };
+		GLfloat mat_diffuse[4] = { 0.0, 0.0, 0.0, 0.0 };
 		GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
 		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
 		glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
@@ -1084,11 +1084,8 @@ void display_polyhedron(Polyhedron* poly)
 			glEnd();
 		}
 
-		// draw lines
-		//for (int k = 0; k < streamlines.size(); k++)
-		//{
-		//	drawPolyLine(streamlines[k], 1.0, 1.0, 0.0, 0.0);
-		//}
+		initImage();
+		imageFilter(fname);
 
 		// draw points
 		// Here, convert the vertex to pixel space and sample the color at that point on the image.
@@ -1097,7 +1094,7 @@ void display_polyhedron(Polyhedron* poly)
 		{
 			icVector3 point = points[k];
 			icVector3 color = findPixelColor(icVector3(point.x, point.y, point.z));
-			drawDot(point.x, point.y, point.z, 0.15, color.x, color.y, color.z);
+			drawDot(point.x, point.y, point.z, (rand() % 100) / 100, color.x, color.y, color.z);
 		}
 		break;
 	}
@@ -1615,7 +1612,6 @@ void initImage()
 
 	int lut[256];
 	int phase[NPN][NPN];
-	GLubyte pat[NPN][NPN][4];
 	int i, j, k;
 
 	
@@ -1628,15 +1624,15 @@ void initImage()
 	{
 		for (j = 0; j < NPN; j++)
 		{
-			pat[i][j][0] =
-				pat[i][j][1] =
-				pat[i][j][2] = lut[(phase[i][j]) % 255];
-			pat[i][j][3] = ALPHA;
+			image_colors[i][j][0] =
+				image_colors[i][j][1] =
+				image_colors[i][j][2] = lut[(phase[i][j]) % 255];
+			image_colors[i][j][3] = ALPHA;
 		}
 	}
 
 	glNewList(1, GL_COMPILE);
-	glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, GL_RGBA, GL_UNSIGNED_BYTE, pat);
+	glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_colors);
 	glEndList();
 }
 
@@ -2041,14 +2037,14 @@ void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines)
 		for (int j = -10; j <= 10; j++) {
 			build_streamline(i, j);
 		}
-	//	//icVector3 x_ax = icVector3(i, 0, 0);
-	//	//icVector3 y_ax = icVector3(0, i, 0);
-	//	//points->push_back(x_ax);
-	//	//points->push_back(y_ax);
+	////	//icVector3 x_ax = icVector3(i, 0, 0);
+	////	//icVector3 y_ax = icVector3(0, i, 0);
+	////	//points->push_back(x_ax);
+	////	//points->push_back(y_ax);
 
-		//Build streamlines from each point on the axes
-		//build_streamline(i, 0);
-		//build_streamline(0, i);
+	//	//Build streamlines from each point on the axes
+	//	//build_streamline(i, 0);
+	//	//build_streamline(0, i);
 	}
 
 	//build_streamline(0, 0);
