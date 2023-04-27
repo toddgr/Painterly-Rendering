@@ -1025,6 +1025,18 @@ void display_polyhedron(Polyhedron* poly)
 
 	case 3:	// Displays streamlines
 	{
+
+		glEnable(GL_LIGHTING);
+		glEnable(GL_LIGHT0);
+		glEnable(GL_LIGHT1);
+
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		GLfloat mat_diffuse[4] = { 1.0, 1.0, 1.0, 0.0 };
+		GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+		glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+		glMaterialf(GL_FRONT, GL_SHININESS, 50.0);
+
 		for (int i = 0; i < poly->nquads; i++) {
 			Quad* temp_q = poly->qlist[i];
 			glBegin(GL_POLYGON);
@@ -1037,13 +1049,14 @@ void display_polyhedron(Polyhedron* poly)
 		}
 
 		//displayImage();
-		//glutPostRedisplay();
 
 		// draw lines
 		for (int k = 0; k < streamlines.size(); k++)
 		{
 			drawPolyLine(streamlines[k], 1.0, 1.0, 0.0, 0.0);
 		}
+
+		glutPostRedisplay();
 	}
 	break;
 
@@ -1083,7 +1096,8 @@ void display_polyhedron(Polyhedron* poly)
 		for (int k = 0; k < points.size(); k++)
 		{
 			icVector3 point = points[k];
-			drawDot(point.x, point.y, point.z, 0.15, 1., 0., 1.);
+			icVector3 color = findPixelColor(icVector3(point.x, point.y, point.z));
+			drawDot(point.x, point.y, point.z, 0.15, color.x, color.y, color.z);
 		}
 		break;
 	}
@@ -1556,17 +1570,22 @@ icVector3 quadToTexture(double x, double y, double z) {
 
 // Find the color of a pixel given a coordinate on the mesh
 icVector3 findPixelColor(icVector3 v) {
+	double r = 0., g = 0., b = 0.;
 	// v is a vertex in the mesh space
 	// convert to pixel space
-	double c = ((v.y * (cmax - cmin)) +
+	int col = ((v.y * (cmax - cmin)) +
 		((cmin * max.x) - (cmax * min.x))) / (max.x - min.x);
-	double r = ((v.x * (rmax - rmin)) +
+	int row = ((v.x * (rmax - rmin)) +
 		((rmin * max.y) - (rmax * min.y))) / (max.y - min.y);
 	
 	// find rgb values at a given pixel
+	r = image_colors[col][row][0];
+	g = image_colors[col][row][1];
+	b = image_colors[col][row][2];
+
 
 	// return
-	return icVector3(c, r, 0.);
+	return icVector3(r, g, b);
 }
 
 
@@ -2019,16 +2038,16 @@ void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines)
 	// make dots along x and y axes
 	for (int i = -10; i <= 10; i++)
 	{
-		//for (int j = -10; j <= 10; j++) {
-		//	build_streamline(i, j);
-		//}
+		for (int j = -10; j <= 10; j++) {
+			build_streamline(i, j);
+		}
 	//	//icVector3 x_ax = icVector3(i, 0, 0);
 	//	//icVector3 y_ax = icVector3(0, i, 0);
 	//	//points->push_back(x_ax);
 	//	//points->push_back(y_ax);
 
 		//Build streamlines from each point on the axes
-		build_streamline(i, 0);
+		//build_streamline(i, 0);
 		//build_streamline(0, i);
 	}
 
