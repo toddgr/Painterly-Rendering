@@ -975,7 +975,7 @@ void display_polyhedron(Polyhedron* poly)
 		glEnable(GL_LIGHT1);
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		GLfloat mat_diffuse[4] = { 0.24, 0.4, 0.47, 0.0 };
+		GLfloat mat_diffuse[4] = { 1.0, 1.0, 1.0, 0.0 };
 		GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
 		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
 		glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
@@ -1052,7 +1052,7 @@ void display_polyhedron(Polyhedron* poly)
 		glEnable(GL_LIGHT1);
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		GLfloat mat_diffuse[4] = { 0.24, 0.4, 0.47, 0.0 };
+		GLfloat mat_diffuse[4] = { 1.0, 1.0, 1.0, 0.0 };
 		GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
 		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
 		glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
@@ -1070,10 +1070,10 @@ void display_polyhedron(Polyhedron* poly)
 		}
 
 		// draw lines
-		for (int k = 0; k < streamlines.size(); k++)
-		{
-			drawPolyLine(streamlines[k], 1.0, 1.0, 0.0, 0.0);
-		}
+		//for (int k = 0; k < streamlines.size(); k++)
+		//{
+		//	drawPolyLine(streamlines[k], 1.0, 1.0, 0.0, 0.0);
+		//}
 
 		// draw points
 		// Here, convert the vertex to pixel space and sample the color at that point on the image.
@@ -1081,7 +1081,7 @@ void display_polyhedron(Polyhedron* poly)
 		for (int k = 0; k < points.size(); k++)
 		{
 			icVector3 point = points[k];
-			drawDot(point.x, point.y, point.z);
+			drawDot(point.x, point.y, point.z, 0.15, 1., 0., 1.);
 		}
 		break;
 	}
@@ -2005,16 +2005,16 @@ void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines)
 	// make dots along x and y axes
 	for (int i = -10; i <= 10; i++)
 	{
-		for (int j = -10; j <= 10; j++) {
-			build_streamline(i, j);
-		}
+		//for (int j = -10; j <= 10; j++) {
+		//	build_streamline(i, j);
+		//}
 	//	//icVector3 x_ax = icVector3(i, 0, 0);
 	//	//icVector3 y_ax = icVector3(0, i, 0);
 	//	//points->push_back(x_ax);
 	//	//points->push_back(y_ax);
 
 		//Build streamlines from each point on the axes
-		//build_streamline(i, 0);
+		build_streamline(i, 0);
 		//build_streamline(0, i);
 	}
 
