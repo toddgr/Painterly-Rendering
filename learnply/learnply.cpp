@@ -66,7 +66,7 @@ const double STEP = 0.01; // You should experiment to find the optimal step size
 const int STEP_MAX = 10000; // Upper limit of steps to take for tracing each streamline.
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
-const std::string fname = "../data/image/green-blue.ppm";
+const std::string fname = "../data/image/bysmall.ppm";
 int alpha = (255 * 0.2);
 ppm img(fname);
 float edge_vectors[NPN][NPN][2]; // For storing the edge field
@@ -471,6 +471,9 @@ void keyboard(unsigned char key, int x, int y) {
 	lines.clear();
 	points.clear();
 
+	initImage();	// Initialize image out of input file
+	initSobel();
+
 	switch (key) {
 	case 27:	// set excape key to exit program
 		poly->finalize();  // finalize_everything
@@ -481,7 +484,7 @@ void keyboard(unsigned char key, int x, int y) {
 	{
 		display_mode = 7;	// Display mode for original image
 		printf("Displaying original image.\n");
-		initImage();	// Initialize image out of input file
+		//initImage();	// Initialize image out of input file
 		imageFilter(fname);
 		glutPostRedisplay();
 	}
@@ -491,7 +494,7 @@ void keyboard(unsigned char key, int x, int y) {
 	{
 		display_mode = 8;
 		printf("Displaying Sobel image.\n");
-		initSobel();
+		//initSobel();
 		sobelFilter(fname);
 		glutPostRedisplay();
 	}
@@ -503,18 +506,18 @@ void keyboard(unsigned char key, int x, int y) {
 		findMinMaxField(min, max);
 		std::cout << "Drawing streamlines" << std::endl;
 
-		initSobel();
+		//initSobel();
 		sobelFilter(fname);
 
 		//for patsvec
-		initImage();
-		imageFilter(fname);
+		//initImage();
+		//imageFilter(fname);
 
 		draw_lines(&points, &streamlines);
-		print_test_points();
-		print_pixel_color_neighbors(64, 64);
-		print_pixel_color_neighbors(140, 140);
-		print_pixel_color_neighbors(192, 192);
+		//print_test_points();
+		//print_pixel_color_neighbors(64, 64);
+		//print_pixel_color_neighbors(140, 140);
+		//print_pixel_color_neighbors(192, 192);
 		glutPostRedisplay();
 	}
 	break;
@@ -524,7 +527,7 @@ void keyboard(unsigned char key, int x, int y) {
 		findMinMaxField(min, max);
 		std::cout << "Drawing brush strokes" << std::endl;
 		//for patsvec
-		initSobel();
+		//initSobel();
 		sobelFilter(fname);
 
 		draw_lines(&points, &streamlines);
@@ -977,8 +980,8 @@ void display_polyhedron(Polyhedron* poly)
 		glEnable(GL_LIGHT1);
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		GLfloat mat_diffuse[4] = { 1.0, 1.0, 1.0, 0.0 };
-		GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+		GLfloat mat_diffuse[4] = { 0.75, 0.75, 0.75, 0.0 };
+		GLfloat mat_specular[] = { 0.75, 0.75, 0.75, 1.0 };
 		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
 		glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
 		glMaterialf(GL_FRONT, GL_SHININESS, 50.0);
@@ -1031,8 +1034,8 @@ void display_polyhedron(Polyhedron* poly)
 		glEnable(GL_LIGHT1);
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		GLfloat mat_diffuse[4] = { 1.0, 1.0, 1.0, 0.0 };
-		GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+		GLfloat mat_diffuse[4] = { 0.5, 0.5, 0.5, 0.0 };
+		GLfloat mat_specular[] = { 0.5, 0.5, 0.5, 1.0 };
 		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
 		glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
 		glMaterialf(GL_FRONT, GL_SHININESS, 50.0);
@@ -1053,7 +1056,7 @@ void display_polyhedron(Polyhedron* poly)
 		// draw lines
 		for (int k = 0; k < streamlines.size(); k++)
 		{
-			drawPolyLine(streamlines[k], 1.0, 1.0, 0.0, 0.0);
+			drawPolyLine(streamlines[k], 1.0, 0.0, 0.0, 0.0);
 		}
 
 		glutPostRedisplay();
@@ -1067,8 +1070,8 @@ void display_polyhedron(Polyhedron* poly)
 		glEnable(GL_LIGHT1);
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		GLfloat mat_diffuse[4] = { 0.0, 0.0, 0.0, 0.0 };
-		GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+		GLfloat mat_diffuse[4] = { 0.75, 0.75, 0.75, 0.0 };
+		GLfloat mat_specular[] = { 0.75, 0.75, 0.75, 1.0 };
 		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
 		glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
 		glMaterialf(GL_FRONT, GL_SHININESS, 50.0);
@@ -1094,7 +1097,7 @@ void display_polyhedron(Polyhedron* poly)
 		{
 			icVector3 point = points[k];
 			icVector3 color = findPixelColor(icVector3(point.x, point.y, point.z));
-			drawDot(point.x, point.y, point.z, (rand() % 100) / 100, color.x, color.y, color.z);
+			drawDot(point.x, point.y, point.z, 0.2, color.x, color.y, color.z);
 		}
 		break;
 	}
@@ -1580,6 +1583,10 @@ icVector3 findPixelColor(icVector3 v) {
 	g = image_colors[col][row][1];
 	b = image_colors[col][row][2];
 
+	r /= 255;
+	g /= 255;
+	b /= 255;
+
 
 	// return
 	return icVector3(r, g, b);
@@ -2028,6 +2035,7 @@ void sobelFilter(const std::string& fname) {
 
 }
 
+// TODO: Optimize this
 // example function for using dots and polylines
 void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines)
 {
@@ -2037,14 +2045,14 @@ void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines)
 		for (int j = -10; j <= 10; j++) {
 			build_streamline(i, j);
 		}
-	////	//icVector3 x_ax = icVector3(i, 0, 0);
-	////	//icVector3 y_ax = icVector3(0, i, 0);
-	////	//points->push_back(x_ax);
-	////	//points->push_back(y_ax);
+	//////	//icVector3 x_ax = icVector3(i, 0, 0);
+	//////	//icVector3 y_ax = icVector3(0, i, 0);
+	//////	//points->push_back(x_ax);
+	//////	//points->push_back(y_ax);
 
-	//	//Build streamlines from each point on the axes
-	//	//build_streamline(i, 0);
-	//	//build_streamline(0, i);
+	////	//Build streamlines from each point on the axes
+	////	//build_streamline(i, 0);
+	////	//build_streamline(0, i);
 	}
 
 	//build_streamline(0, 0);
