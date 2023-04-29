@@ -71,6 +71,7 @@ int alpha = (255 * 0.2);
 ppm img(fname);
 float edge_vectors[NPN][NPN][2]; // For storing the edge field
 GLubyte image_colors[NPN][NPN][4];	// For accessing pixel colors
+bool streamlines_built = false;
 
 icVector3 min, max;
 // min and max texture coords
@@ -513,11 +514,15 @@ void keyboard(unsigned char key, int x, int y) {
 		//initImage();
 		//imageFilter(fname);
 
-		draw_lines(&points, &streamlines);
-		//print_test_points();
-		//print_pixel_color_neighbors(64, 64);
-		//print_pixel_color_neighbors(140, 140);
-		//print_pixel_color_neighbors(192, 192);
+		if (!streamlines_built) {
+			draw_lines(&points, &streamlines);
+			//print_test_points();
+			//print_pixel_color_neighbors(64, 64);
+			//print_pixel_color_neighbors(140, 140);
+			//print_pixel_color_neighbors(192, 192);
+			streamlines_built = true;
+		}
+
 		glutPostRedisplay();
 	}
 	break;
@@ -530,8 +535,12 @@ void keyboard(unsigned char key, int x, int y) {
 		//initSobel();
 		sobelFilter(fname);
 
-		draw_lines(&points, &streamlines);
-		//print_test_points();
+		if (!streamlines_built) {
+			draw_lines(&points, &streamlines);
+			//print_test_points();
+			streamlines_built = true;
+		}
+		
 		glutPostRedisplay();
 		break;
 
@@ -1093,11 +1102,16 @@ void display_polyhedron(Polyhedron* poly)
 		// draw points
 		// Here, convert the vertex to pixel space and sample the color at that point on the image.
 		// set that color to be that same as the stroke that we are drawing.
+		icVector3 prevpoint = icVector3(0., 0., 0.);
 		for (int k = 0; k < points.size(); k++)
 		{
 			icVector3 point = points[k];
-			icVector3 color = findPixelColor(icVector3(point.x, point.y, point.z));
-			drawDot(point.x, point.y, point.z, 0.2, color.x, color.y, color.z);
+			if (point != prevpoint) {
+				icVector3 color = findPixelColor(icVector3(point.x, point.y, point.z));
+				//std::cout << "drawing point " << k << " at {" << point.x << ", " << point.y << ", " << point.z << "}..." << std::endl;
+				drawDot(point.x, point.y, point.z, 0.2, color.x, color.y, color.z);
+			}
+			prevpoint = point;
 		}
 		break;
 	}
@@ -1455,8 +1469,7 @@ void build_streamline(double x, double y)
 			LineSegment linear_seg = LineSegment(cpos.x, cpos.y, 0, npos.x, npos.y, 0);
 			pline.push_back(linear_seg);
 
-			// Add a point here, let it sample the color of the image
-			points.push_back(icVector3(cpos.x, cpos.y, 0));
+			points.push_back(icVector3(cpos.x, cpos.y, 0));	
 
 			cpos = npos;
 			step_counter++;
@@ -2043,6 +2056,7 @@ void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines)
 	for (int i = -10; i <= 10; i++)
 	{
 		for (int j = -10; j <= 10; j++) {
+			std::cout << "building streamline[" << i << "][" << j << "]..." << std::endl;
 			build_streamline(i, j);
 		}
 	//////	//icVector3 x_ax = icVector3(i, 0, 0);
