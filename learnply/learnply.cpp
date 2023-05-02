@@ -72,6 +72,9 @@ ppm img(fname);
 float edge_vectors[NPN][NPN][2]; // For storing the edge field
 GLubyte image_colors[NPN][NPN][4];	// For accessing pixel colors
 bool streamlines_built = false;
+#define E 2.71828
+#define PI 3.1415926
+float st_dev = 2.;
 
 icVector3 min, max;
 // min and max texture coords
@@ -127,7 +130,7 @@ void displayImage();
 void initSobel();
 void displaySobel();
 void sobelFilter(const std::string& fname);
-icVector2 gaussFunction(double x, double y);
+float gaussFunction(double x, double y);
 void gaussBlur(const std::string& fname);
 
 void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines);
@@ -2084,12 +2087,30 @@ void sobelFilter(const std::string& fname) {
 }
 
 // Calculates the transformation to apply to each pixel in the image
-icVector2 gaussFunction(double x, double y) {
-	return icVector2(0, 0);
+float gaussFunction(double x, double y) {
+	float exponent = -(x * x + y * y) / (2 * st_dev * st_dev);
+	return (1/(2 * PI * st_dev * st_dev) * pow(E, exponent));
 }
 
-// 
+// Apply gaussian blur to image before edge detection
+// Aims to create a smoother edge field to work from
 void gaussBlur(const std::string& fname) {
+	// Gaussian kernels-- currently 3x3
+	// Bigger kernels, more blur
+	// Might need to create a function for this later, when 
+	// the values become more complex
+
+
+	// gauss texture
+	
+	// For each row and column, check each RGB channel
+	 
+	// If the pixel is a boundary pixel, we keep it the same color
+		// (This might be where we can implement edge preservation later as well)
+	
+	// Convolve the kernels and the images
+
+	// Bind to a texture
 
 }
 
