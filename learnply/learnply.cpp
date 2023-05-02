@@ -66,7 +66,7 @@ const double STEP = 0.01; // You should experiment to find the optimal step size
 const int STEP_MAX = 10000; // Upper limit of steps to take for tracing each streamline.
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
-const std::string fname = "../data/image/bysmall.ppm";
+const std::string fname = "../data/image/bart.ppm";
 int alpha = (255 * 0.2);
 ppm img(fname);
 float edge_vectors[NPN][NPN][2]; // For storing the edge field
@@ -75,8 +75,8 @@ bool streamlines_built = false;
 
 icVector3 min, max;
 // min and max texture coords
-int rmin = NPN - 1;
-int rmax = 0;
+int rmax = NPN - 1;
+int rmin = 0;
 int cmin = 0;
 int cmax = NPN - 1;
 
@@ -127,6 +127,8 @@ void displayImage();
 void initSobel();
 void displaySobel();
 void sobelFilter(const std::string& fname);
+icVector2 gaussFunction(double x, double y);
+void gaussBlur(const std::string& fname);
 
 void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines);
 void print_test_points();
@@ -514,13 +516,22 @@ void keyboard(unsigned char key, int x, int y) {
 		//initImage();
 		//imageFilter(fname);
 
-		if (!streamlines_built) {
-			draw_lines(&points, &streamlines);
+		//if (!streamlines_built) {
+			//draw_lines(&points, &streamlines);
 			//print_test_points();
 			//print_pixel_color_neighbors(64, 64);
 			//print_pixel_color_neighbors(140, 140);
 			//print_pixel_color_neighbors(192, 192);
-			streamlines_built = true;
+			//streamlines_built = true;
+		//}
+
+			// make dots along x and y axes
+		for (int i = -10; i <= 10; i++)
+		{
+			for (int j = -10; j <= 10; j++) {
+				std::cout << "building streamline[" << i << "][" << j << "]..." << std::endl;
+				build_streamline(i, j);
+			}
 		}
 
 		glutPostRedisplay();
@@ -535,11 +546,11 @@ void keyboard(unsigned char key, int x, int y) {
 		//initSobel();
 		sobelFilter(fname);
 
-		if (!streamlines_built) {
+		//if (!streamlines_built) {
 			draw_lines(&points, &streamlines);
 			//print_test_points();
-			streamlines_built = true;
-		}
+			//streamlines_built = true;
+		//}
 		
 		glutPostRedisplay();
 		break;
@@ -1043,8 +1054,8 @@ void display_polyhedron(Polyhedron* poly)
 		glEnable(GL_LIGHT1);
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		GLfloat mat_diffuse[4] = { 0.5, 0.5, 0.5, 0.0 };
-		GLfloat mat_specular[] = { 0.5, 0.5, 0.5, 1.0 };
+		GLfloat mat_diffuse[4] = { 0.75, 0.75, 0.75, 0.0 };
+		GLfloat mat_specular[] = { 0.75, 0.75, 0.75, 1.0 };
 		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
 		glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
 		glMaterialf(GL_FRONT, GL_SHININESS, 50.0);
@@ -1102,6 +1113,7 @@ void display_polyhedron(Polyhedron* poly)
 		// draw points
 		// Here, convert the vertex to pixel space and sample the color at that point on the image.
 		// set that color to be that same as the stroke that we are drawing.
+		//std::cout << "drawing points now" << std::endl;
 		icVector3 prevpoint = icVector3(0., 0., 0.);
 		for (int k = 0; k < points.size(); k++)
 		{
@@ -1109,7 +1121,7 @@ void display_polyhedron(Polyhedron* poly)
 			if (point != prevpoint) {
 				icVector3 color = findPixelColor(icVector3(point.x, point.y, point.z));
 				//std::cout << "drawing point " << k << " at {" << point.x << ", " << point.y << ", " << point.z << "}..." << std::endl;
-				drawDot(point.x, point.y, point.z, 0.2, color.x, color.y, color.z);
+				drawDot(point.x, point.y, point.z, 0.75, color.x, color.y, color.z);
 			}
 			prevpoint = point;
 		}
@@ -1358,40 +1370,100 @@ double sing_prox(icVector2 pos)
 	return prox;
 }
 
+// Find the vertex in the list of vertices in the polyhedron
+// This is where we will define the vx and vy of the vertex to be that
+// of the edge field
+Vertex* find_vertex(double xx, double yy) {
+	for (int i = 0; i < poly->nverts; i++) {
+		Vertex* v = poly->vlist[i];
+		if (std::abs(v->x - xx) < 1.0e-6 && std::abs(v->y - yy) < 1.0e-6) {
+			v->vx = quadToTexture(xx, yy, 0).x;
+			v->vy = quadToTexture(xx, yy, 0).y;
+			return v;
+		}
+	}
+	return NULL;
+}
+
 Quad* streamline_step(icVector2& cpos, icVector2& npos, Quad* cquad, bool forward)
 {
-	double x1, y1, x2, y2, f11, f12, f21, f22, g11, g21, g12, g22;
-	double z = 0.; // We don't need anything in the z direction
+	//double x1, y1, x2, y2, f11, f12, f21, f22, g11, g21, g12, g22;
+	//double f11, f12, f21, f22, g11, g21, g12, g22;
+	const double z = 0.; // We don't need anything in the z direction
 	Vertex* v11, * v12, * v21, * v22;
 
-	x1 = poly->smallest_x(cquad);
-	x2 = poly->largest_x(cquad);
-	y1 = poly->smallest_y(cquad);
-	y2 = poly->largest_y(cquad);
+	const double x1 = poly->smallest_x(cquad);
+	const double x2 = poly->largest_x(cquad);
+	const double y1 = poly->smallest_y(cquad);
+	const double y2 = poly->largest_y(cquad);
 
-	v11 = find_vertex(x1, y1);
-	f11 = v11->vx;
-	g11 = v11->vy;
+	const icVector3 vxy11 = quadToTexture(x1, y1, 0);
+	const icVector3 vxy12 = quadToTexture(x1, y2, 0);
+	const icVector3 vxy21 = quadToTexture(x2, y1, 0);
+	const icVector3 vxy22 = quadToTexture(x2, y2, 0);
 
-	v12 = find_vertex(x1, y2);
-	f12 = v12->vx;
-	g12 = v12->vy;
+	for (int i = 0; i < poly->nverts; i++) {
+		Vertex* v = poly->vlist[i];
 
-	v21 = find_vertex(x2, y1);
-	f21 = v21->vx;
-	g21 = v21->vy;
+		//x1,y1
+		if (fabs(v->x - x1) < 1.0e-6 && fabs(v->y - y1) < 1.0e-6) {
+			v->vx = vxy11.x;
+			v->vy = vxy11.y;
+			v11 = v;
+			continue;
+		}
 
-	v22 = find_vertex(x2, y2);
-	f22 = v22->vx;
-	g22 = v22->vy;
+		//x1,y2
+		if (fabs(v->x - x1) < 1.0e-6 && fabs(v->y - y2) < 1.0e-6) {
+			v->vx = vxy12.x;
+			v->vy = vxy12.y;
+			v12 = v;
+			continue;
+		}
 
-	double x0 = cpos.x;
-	double y0 = cpos.y;
+		//x2,y1
+		if (fabs(v->x - x2) < 1.0e-6 && fabs(v->y - y1) < 1.0e-6) {
+			v->vx = vxy21.x;
+			v->vy = vxy21.y;
+			v21 = v;
+			continue;
+		}
+
+		//x2,y2
+		if (fabs(v->x - x2) < 1.0e-6 && fabs(v->y - y2) < 1.0e-6) {
+			v->vx = vxy22.x;
+			v->vy = vxy22.y;
+			v22 = v;
+			continue;
+		}
+	}
+
+	//std::cout << "vs found." << std::endl;
+
+	//v11 = find_vertex(x1, y1);
+	const double f11 = v11->vx;
+	const double g11 = v11->vy;
+
+	//v12 = find_vertex(x1, y2);
+	const double f12 = v12->vx;
+	const double g12 = v12->vy;
+
+	//v21 = find_vertex(x2, y1);
+	const double f21 = v21->vx;
+	const double g21 = v21->vy;
+
+	//v22 = find_vertex(x2, y2);
+	const double f22 = v22->vx;
+	const double g22 = v22->vy;
+
+	const double x0 = cpos.x;
+	const double  y0 = cpos.y;
 	icVector2 vect;
-	double m1 = (x2 - x0) * (y2 - y0) / (x2 - x1) / (y2 - y1);
-	double m2 = (x0 - x1) * (y2 - y0) / (x2 - x1) / (y2 - y1);
-	double m3 = (x2 - x0) * (y0 - y1) / (x2 - x1) / (y2 - y1);
-	double m4 = (x0 - x1) * (y0 - y1) / (x2 - x1) / (y2 - y1);
+
+	const double m1 = (x2 - x0) * (y2 - y0) / (x2 - x1) / (y2 - y1);
+	const double m2 = (x0 - x1) * (y2 - y0) / (x2 - x1) / (y2 - y1);
+	const double m3 = (x2 - x0) * (y0 - y1) / (x2 - x1) / (y2 - y1);
+	const double m4 = (x0 - x1) * (y0 - y1) / (x2 - x1) / (y2 - y1);
 	vect.x = m1 * f11 + m2 * f21 + m3 * f12 + m4 * f22;
 	vect.y = m1 * g11 + m2 * g21 + m3 * g12 + m4 * g22;
 	normalize(vect);
@@ -1544,11 +1616,6 @@ icVector3 quadToTexture(double x, double y, double z) {
 		((rmax * max.y) - (rmin * min.y))) / (max.y - min.y);*/
 	double r = ((x * (rmax - rmin)) +
 		((rmin * max.y) - (rmax * min.y))) / (max.y - min.y);
-
-	//double c = ((x - min.x) / (max.x - min.x)) * (cmax - cmin) + cmin;
-	////double r = ((y - min.y) / (max.y - min.y)) * (rmax - rmin) + rmin;
-	//double r = ((y - min.y) / (max.y - min.y)) * (rmin - rmax) + rmax;
-	// r = rmax - r;
 	
 	// Find c,r vector in texture space
 	int ir = (int)r;
@@ -1561,23 +1628,7 @@ icVector3 quadToTexture(double x, double y, double z) {
 		vc = edge_vectors[ic][ir][1];
 		vr = edge_vectors[ic][ir][0];
 	}
-	//else {
-	//	vc = 0.0;
-	//	vr = 0.0;
-	//}
 
-
-	// Define vector with respect to c,r
-	//vc += c;
-	//vr += r;
-
-	//// Convert c,r to x,y space
-	//x = ((vc * (max.x - min.x)) -
-	//	((cmin * max.x) - (cmax * min.x))) / (cmax - cmin);
-	//y = ((vr * (max.y - min.y)) -
-	//	((rmax * max.y) - (rmin * min.y))) / (rmin - rmax);
-
-	//std::cout << x << ", " << y << ", " << z << std::endl;
 	return icVector3(vc, vr, 0.);
 }
 
@@ -1603,22 +1654,6 @@ icVector3 findPixelColor(icVector3 v) {
 
 	// return
 	return icVector3(r, g, b);
-}
-
-
-// Find the vertex in the list of vertices in the polyhedron
-// This is where we will define the vx and vy of the vertex to be that
-// of the edge field
-Vertex* find_vertex(double xx, double yy) {
-	for (int i = 0; i < poly->nverts; i++) {
-		Vertex* v = poly->vlist[i];
-		if ( std::abs(v->x - xx) < 1.0e-6 && std::abs(v->y - yy)< 1.0e-6 ) {
-			v->vx = quadToTexture(xx, yy, 0).x;
-			v->vy = quadToTexture(xx, yy, 0).y;
-			return v;
-		}
-	}
-	return NULL;
 }
 
 // Initialize image to be displayed
@@ -2048,8 +2083,17 @@ void sobelFilter(const std::string& fname) {
 
 }
 
-// TODO: Optimize this
-// example function for using dots and polylines
+// Calculates the transformation to apply to each pixel in the image
+icVector2 gaussFunction(double x, double y) {
+	return icVector2(0, 0);
+}
+
+// 
+void gaussBlur(const std::string& fname) {
+
+}
+
+// draws streamlines at consistent points on the image
 void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines)
 {
 	// make dots along x and y axes
@@ -2059,25 +2103,7 @@ void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines)
 			std::cout << "building streamline[" << i << "][" << j << "]..." << std::endl;
 			build_streamline(i, j);
 		}
-	//////	//icVector3 x_ax = icVector3(i, 0, 0);
-	//////	//icVector3 y_ax = icVector3(0, i, 0);
-	//////	//points->push_back(x_ax);
-	//////	//points->push_back(y_ax);
-
-	////	//Build streamlines from each point on the axes
-	////	//build_streamline(i, 0);
-	////	//build_streamline(0, i);
 	}
-
-	//build_streamline(0, 0);
-	//build_streamline(-10, 10);
-	//build_streamline(0, 10);
-	//build_streamline(10, 10);
-	//build_streamline(-10, 0);
-	//build_streamline(10, 0);
-	//build_streamline(-10, -10);
-	//build_streamline(0, -10);
-	//build_streamline(10, -10);
 }
 
 void print_test_points() {
