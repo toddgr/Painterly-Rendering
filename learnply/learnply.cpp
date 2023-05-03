@@ -66,7 +66,7 @@ const double STEP = 0.01; // You should experiment to find the optimal step size
 const int STEP_MAX = 10000; // Upper limit of steps to take for tracing each streamline.
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
-const std::string fname = "../data/image/teddysmall.ppm";
+const std::string fname = "../data/image/bysmall.ppm";
 int alpha = (255 * 0.2);
 ppm img(fname);
 float edge_vectors[NPN][NPN][2]; // For storing the edge field
@@ -131,7 +131,7 @@ void displaySobel();
 void sobelFilter(const std::string& fname);
 float gaussFunction(double x, double y, double sigma);
 void gaussBlur(const std::string& fname, double sigma);
-void initGauss();
+void initGauss(double std_dev);
 
 void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines);
 void print_test_points();
@@ -472,6 +472,7 @@ Process a keyboard action.  In particular, exit the program when an
 
 void keyboard(unsigned char key, int x, int y) {
 	int i;
+	double sigma = 20.;
 
 	// clear out lines and points
 	lines.clear();
@@ -479,6 +480,7 @@ void keyboard(unsigned char key, int x, int y) {
 
 	initImage();	// Initialize image out of input file
 	initSobel();
+	imageFilter(fname);
 
 	switch (key) {
 	case 27:	// set excape key to exit program
@@ -500,10 +502,9 @@ void keyboard(unsigned char key, int x, int y) {
 	{
 		display_mode = 7;	// Display mode for original image
 		printf("Displaying blurred image.\n");
-		imageFilter(fname);
-		initGauss();
+		//imageFilter(fname);
+		initGauss(sigma);
 		//gaussBlur(fname, 1.);
-		std::cout << "image_colors[64][64]: {" << image_colors[64][64][0] << ", " << image_colors[64][64][1] << ", " << image_colors[64][64][2] << "}" << std::endl;
 		printf("Done.\n");
 		glutPostRedisplay();
 	}
@@ -513,7 +514,7 @@ void keyboard(unsigned char key, int x, int y) {
 	{
 		display_mode = 8;
 		printf("Displaying Sobel image.\n");
-		//initSobel();
+		imageFilter(fname);
 		sobelFilter(fname);
 		glutPostRedisplay();
 	}
@@ -526,6 +527,7 @@ void keyboard(unsigned char key, int x, int y) {
 		std::cout << "Drawing streamlines" << std::endl;
 
 		//initSobel();
+		initGauss(sigma);
 		sobelFilter(fname);
 
 		//for patsvec
@@ -560,6 +562,7 @@ void keyboard(unsigned char key, int x, int y) {
 		std::cout << "Drawing brush strokes" << std::endl;
 		//for patsvec
 		//initSobel();
+		initGauss(sigma);
 		sobelFilter(fname);
 
 		//if (!streamlines_built) {
@@ -1974,9 +1977,14 @@ void sobelFilter(const std::string& fname) {
 	int i, j;
 	for (i = 0; i < NPN; i++) {		// rows
 		for (j = 0; j < NPN; j++) { // columns
-			float c = 0.299 * (float)img.r[(NPN - i - 1) * NPN + j]+
-				0.587 * (float)img.g[(NPN - i - 1) * NPN + j] +
-				0.114 * (float)img.b[(NPN - i - 1) * NPN + j];
+			//float c = 0.299 * (float)img.r[(NPN - i - 1) * NPN + j]+
+			//	0.587 * (float)img.g[(NPN - i - 1) * NPN + j] +
+			//	0.114 * (float)img.b[(NPN - i - 1) * NPN + j];
+
+			float c = 0.299 * image_colors[i][j][0] +
+				0.587 * image_colors[i][j][1] +
+				0.114 * image_colors[i][j][2];
+
 			intensity[i][j][0] = c;
 			intensity[i][j][1] = c;
 			intensity[i][j][2] = c;
@@ -2176,7 +2184,7 @@ void gaussBlur(const std::string& fname, double sigma) {
 }
 
 // Initialize blurred image to be displayed
-void initGauss()
+void initGauss(double std_dev)
 {
 	pixels = (unsigned char*)malloc(sizeof(unsigned char) * win_width * win_height * 3);
 	memset(pixels, 255, sizeof(unsigned char) * win_width * win_height * 3);
@@ -2184,7 +2192,17 @@ void initGauss()
 	tmax = win_width / (SCALE * NPN);
 	dmax = SCALE / win_width;
 
-	gaussBlur(fname, 3.);
+	for (int i = 0; i < NPN; i++) {		// rows
+		for (int j = 0; j < NPN; j++) { // columns
+
+			image_colors[i][j][0] = img.r[(NPN - i - 1) * NPN + j];
+			image_colors[i][j][1] = img.g[(NPN - i - 1) * NPN + j];
+			image_colors[i][j][2] = img.b[(NPN - i - 1) * NPN + j];
+			image_colors[i][j][3] = alpha;
+		}
+	}
+
+	gaussBlur(fname, std_dev);
 
 	glNewList(1, GL_COMPILE);
 	glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_colors);
