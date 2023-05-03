@@ -66,7 +66,7 @@ const double STEP = 0.01; // You should experiment to find the optimal step size
 const int STEP_MAX = 10000; // Upper limit of steps to take for tracing each streamline.
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
-const std::string fname = "../data/image/bart.ppm";
+const std::string fname = "../data/image/teddysmall.ppm";
 int alpha = (255 * 0.2);
 ppm img(fname);
 float edge_vectors[NPN][NPN][2]; // For storing the edge field
@@ -74,7 +74,6 @@ GLubyte image_colors[NPN][NPN][4];	// For accessing pixel colors
 bool streamlines_built = false;
 #define E 2.71828
 #define PI 3.1415926
-float st_dev = 2.;
 
 icVector3 min, max;
 // min and max texture coords
@@ -130,8 +129,9 @@ void displayImage();
 void initSobel();
 void displaySobel();
 void sobelFilter(const std::string& fname);
-float gaussFunction(double x, double y);
-void gaussBlur(const std::string& fname);
+float gaussFunction(double x, double y, double sigma);
+void gaussBlur(const std::string& fname, double sigma);
+void initGauss();
 
 void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines);
 void print_test_points();
@@ -299,35 +299,35 @@ Initialize IBFV patterns
 
 void initIBFV()
 {
-	pixels = (unsigned char*)malloc(sizeof(unsigned char) * win_width * win_height * 3);
-	memset(pixels, 255, sizeof(unsigned char) * win_width * win_height * 3);
+	//pixels = (unsigned char*)malloc(sizeof(unsigned char) * win_width * win_height * 3);
+	//memset(pixels, 255, sizeof(unsigned char) * win_width * win_height * 3);
 
-	tmax = win_width / (SCALE * NPN);
-	dmax = SCALE / win_width;
+	//tmax = win_width / (SCALE * NPN);
+	//dmax = SCALE / win_width;
 
-	int lut[256];
-	int phase[NPN][NPN];
-	GLubyte pat[NPN][NPN][4];
-	int i, j, k;
+	//int lut[256];
+	//int phase[NPN][NPN];
+	//GLubyte pat[NPN][NPN][4];
+	//int i, j, k;
 
-	for (i = 0; i < 256; i++) lut[i] = i < 127 ? 0 : 255;
-	for (i = 0; i < NPN; i++)
-		for (j = 0; j < NPN; j++) phase[i][j] = rand() % 256;
+	//for (i = 0; i < 256; i++) lut[i] = i < 127 ? 0 : 255;
+	//for (i = 0; i < NPN; i++)
+	//	for (j = 0; j < NPN; j++) phase[i][j] = rand() % 256;
 
-	for (i = 0; i < NPN; i++)
-	{
-		for (j = 0; j < NPN; j++)
-		{
-			pat[i][j][0] =
-				pat[i][j][1] =
-				pat[i][j][2] = lut[(phase[i][j]) % 255];
-			pat[i][j][3] = ALPHA;
-		}
-	}
-	
-	glNewList(1, GL_COMPILE);
-	glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, GL_RGBA, GL_UNSIGNED_BYTE, pat);
-	glEndList();
+	//for (i = 0; i < NPN; i++)
+	//{
+	//	for (j = 0; j < NPN; j++)
+	//	{
+	//		pat[i][j][0] =
+	//			pat[i][j][1] =
+	//			pat[i][j][2] = lut[(phase[i][j]) % 255];
+	//		pat[i][j][3] = ALPHA;
+	//	}
+	//}
+	//
+	//glNewList(1, GL_COMPILE);
+	//glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, GL_RGBA, GL_UNSIGNED_BYTE, pat);
+	//glEndList();
 }
 
 /******************************************************************************
@@ -492,6 +492,19 @@ void keyboard(unsigned char key, int x, int y) {
 		printf("Displaying original image.\n");
 		//initImage();	// Initialize image out of input file
 		imageFilter(fname);
+		glutPostRedisplay();
+	}
+	break;
+
+	case 'o':
+	{
+		display_mode = 7;	// Display mode for original image
+		printf("Displaying blurred image.\n");
+		imageFilter(fname);
+		initGauss();
+		//gaussBlur(fname, 1.);
+		std::cout << "image_colors[64][64]: {" << image_colors[64][64][0] << ", " << image_colors[64][64][1] << ", " << image_colors[64][64][2] << "}" << std::endl;
+		printf("Done.\n");
 		glutPostRedisplay();
 	}
 	break;
@@ -2087,31 +2100,95 @@ void sobelFilter(const std::string& fname) {
 }
 
 // Calculates the transformation to apply to each pixel in the image
-float gaussFunction(double x, double y) {
-	float exponent = -(x * x + y * y) / (2 * st_dev * st_dev);
-	return (1/(2 * PI * st_dev * st_dev) * pow(E, exponent));
+float gaussFunction(double x, double y, double sigma) {
+	float exponent = -(x * x + y * y) / (2 * sigma * sigma);
+	return (1/(2 * PI * sigma * sigma) * pow(E, exponent));
 }
 
 // Apply gaussian blur to image before edge detection
 // Aims to create a smoother edge field to work from
-void gaussBlur(const std::string& fname) {
-	// Gaussian kernels-- currently 3x3
-	// Bigger kernels, more blur
-	// Might need to create a function for this later, when 
-	// the values become more complex
+void gaussBlur(const std::string& fname, double sigma) {
 
+	// Gaussian kernel-- determined based on the size of sigma
+	int kernel_size = ceil(sigma * 3) * 2 + 1;
+
+	double* kernel = new double[kernel_size * kernel_size];
+	double sum = 0;
+	for (int y = -kernel_size / 2; y <= kernel_size / 2; y++) {
+		for (int x = -kernel_size / 2; x <= kernel_size / 2; x++) {
+			double value = gaussFunction(x, y, sigma);
+			kernel[(y + kernel_size / 2) * kernel_size + x + kernel_size / 2] = value;
+			sum += value;
+		}
+	}
+
+	std::cout << "Gaussian kernel: " << std::endl;
+	// Normalize the kernel
+	for (int i = 0; i < kernel_size * kernel_size; i++) {
+		kernel[i] /= sum;
+		std::cout << kernel[i] << ",\t";
+		if ((i + 1) % kernel_size == 0 ) {
+			std::cout << std::endl;
+		}
+	}
+
+	
 
 	// gauss texture
-	
+	GLubyte image[NPN][NPN][4];	// image before filter is applied - intensity
+	//GLubyte gausspat[NPN][NPN][4];
+
 	// For each row and column, check each RGB channel
-	 
-	// If the pixel is a boundary pixel, we keep it the same color
-		// (This might be where we can implement edge preservation later as well)
-	
-	// Convolve the kernels and the images
+	int i, j, k; //row, column, color channel
+	for (i = 0; i < NPN - 1; i++) {		// row
+		for (j = 0; j < NPN - 1; j++) {	// column
+			//for (k = 0; k < 3; k++) {
+				// If the pixel is a boundary pixel, we keep it the same color
+					// (This might be where we can implement edge preservation later as well)
 
-	// Bind to a texture
+			float magr = 0.0;
+			float magg = 0.0;
+			float magb = 0.0;
 
+
+			// Convolve the kernels and the images
+			for (int ki = -kernel_size / 2; ki <= kernel_size / 2; ki++) {
+				for (int kj = -kernel_size / 2; kj <= kernel_size / 2; kj++) {
+					int loc = ((kj + (kernel_size / 2)) * kernel_size) + (ki + (kernel_size / 2));
+					magr += image_colors[i - 1 + ki][j - 1 + kj][0] * kernel[loc];
+					magg += image_colors[i - 1 + ki][j - 1 + kj][1] * kernel[loc];
+					magb += image_colors[i - 1 + ki][j - 1 + kj][2] * kernel[loc];
+				}
+			}
+
+			// Before we assign this, we need to normalize the magnitudes somehow
+			image_colors[i][j][0] = magr;
+			image_colors[i][j][1] = magg;
+			image_colors[i][j][2] = magb;
+
+			//}
+		}
+	}
+
+	// Free this memory
+	delete[] kernel;
+
+}
+
+// Initialize blurred image to be displayed
+void initGauss()
+{
+	pixels = (unsigned char*)malloc(sizeof(unsigned char) * win_width * win_height * 3);
+	memset(pixels, 255, sizeof(unsigned char) * win_width * win_height * 3);
+
+	tmax = win_width / (SCALE * NPN);
+	dmax = SCALE / win_width;
+
+	gaussBlur(fname, 3.);
+
+	glNewList(1, GL_COMPILE);
+	glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_colors);
+	glEndList();
 }
 
 // draws streamlines at consistent points on the image
