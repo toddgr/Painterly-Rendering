@@ -4,6 +4,7 @@
 #include <string.h>
 #include <fstream>
 #include <vector>
+#include <random>
 
 #include "glError.h"
 #include "gl/glew.h"
@@ -81,6 +82,13 @@ int rmax = NPN - 1;
 int rmin = 0;
 int cmin = 0;
 int cmax = NPN - 1;
+
+/*****************************************************************************
+Global Variables to be messed with for UI
+******************************************************************************/
+double brush_width = 0.75;
+double color_jitter = 0.1;
+double brightness = -0.2;
 
 /******************************************************************************
 Forward declaration of functions
@@ -1105,7 +1113,7 @@ void display_polyhedron(Polyhedron* poly)
 	}
 	break;
 
-	case 4: // points and lines drawing example, for brush strokes
+	case 4: // brush strokes
 	{
 		glEnable(GL_LIGHTING);
 		glEnable(GL_LIGHT0);
@@ -1131,6 +1139,7 @@ void display_polyhedron(Polyhedron* poly)
 
 		initImage();
 		imageFilter(fname);
+		displayImage();
 
 		// draw points
 		// Here, convert the vertex to pixel space and sample the color at that point on the image.
@@ -1143,7 +1152,7 @@ void display_polyhedron(Polyhedron* poly)
 			if (point != prevpoint) {
 				icVector3 color = findPixelColor(icVector3(point.x, point.y, point.z));
 				//std::cout << "drawing point " << k << " at {" << point.x << ", " << point.y << ", " << point.z << "}..." << std::endl;
-				drawDot(point.x, point.y, point.z, 0.75, color.x, color.y, color.z);
+				drawDot(point.x, point.y, point.z, brush_width, color.x, color.y, color.z);
 			}
 			prevpoint = point;
 		}
@@ -1673,6 +1682,14 @@ icVector3 findPixelColor(icVector3 v) {
 	g /= 255;
 	b /= 255;
 
+	float jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
+	/*float red_jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
+	float green_jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
+	float blue_jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
+	*/
+	r += jitter + brightness;
+	g += jitter + brightness;
+	b += jitter + brightness;
 
 	// return
 	return icVector3(r, g, b);
