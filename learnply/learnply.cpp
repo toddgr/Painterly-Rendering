@@ -66,12 +66,12 @@ const double STEP = 0.01; // You should experiment to find the optimal step size
 const int STEP_MAX = 10000; // Upper limit of steps to take for tracing each streamline.
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
-const std::string fname = "../data/image/bysmall.ppm";
+const std::string fname = "../data/image/teddysmall.ppm";
 int alpha = (255 * 0.2);
 ppm img(fname);
 float edge_vectors[NPN][NPN][2]; // For storing the edge field
 GLubyte image_colors[NPN][NPN][4];	// For accessing pixel colors
-bool streamlines_built = false;
+bool blur_image = false;
 #define E 2.71828
 #define PI 3.1415926
 
@@ -158,7 +158,7 @@ int main(int argc, char* argv[])
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutInitWindowPosition(20, 20);
 	glutInitWindowSize(win_width, win_height);
-	glutCreateWindow("Streamline Testing");
+	glutCreateWindow("Painterly Rendering Demo");
 
 	
 	/*initialize openGL*/
@@ -472,7 +472,7 @@ Process a keyboard action.  In particular, exit the program when an
 
 void keyboard(unsigned char key, int x, int y) {
 	int i;
-	double sigma = 20.;
+	double sigma = 1.;
 
 	// clear out lines and points
 	lines.clear();
@@ -502,6 +502,7 @@ void keyboard(unsigned char key, int x, int y) {
 	{
 		display_mode = 7;	// Display mode for original image
 		printf("Displaying blurred image.\n");
+		blur_image = !blur_image;
 		//imageFilter(fname);
 		initGauss(sigma);
 		//gaussBlur(fname, 1.);
@@ -515,6 +516,9 @@ void keyboard(unsigned char key, int x, int y) {
 		display_mode = 8;
 		printf("Displaying Sobel image.\n");
 		imageFilter(fname);
+		if (blur_image) {
+			initGauss(sigma);
+		}
 		sobelFilter(fname);
 		glutPostRedisplay();
 	}
@@ -524,10 +528,13 @@ void keyboard(unsigned char key, int x, int y) {
 	{
 		display_mode = 3;
 		findMinMaxField(min, max);
-		std::cout << "Drawing streamlines" << std::endl;
+		std::cout << "\nDrawing streamlines" << std::endl;
 
 		//initSobel();
-		initGauss(sigma);
+		if (blur_image) {
+			initGauss(sigma);
+		}
+		
 		sobelFilter(fname);
 
 		//for patsvec
@@ -544,13 +551,7 @@ void keyboard(unsigned char key, int x, int y) {
 		//}
 
 			// make dots along x and y axes
-		for (int i = -10; i <= 10; i++)
-		{
-			for (int j = -10; j <= 10; j++) {
-				std::cout << "building streamline[" << i << "][" << j << "]..." << std::endl;
-				build_streamline(i, j);
-			}
-		}
+		draw_lines(&points, &streamlines);
 
 		glutPostRedisplay();
 	}
@@ -559,10 +560,12 @@ void keyboard(unsigned char key, int x, int y) {
 	case '3':	// Brush stroke display
 		display_mode = 4;
 		findMinMaxField(min, max);
-		std::cout << "Drawing brush strokes" << std::endl;
+		std::cout << "\nDrawing brush strokes" << std::endl;
 		//for patsvec
 		//initSobel();
-		initGauss(sigma);
+		if (blur_image) {
+			initGauss(sigma);
+		}
 		sobelFilter(fname);
 
 		//if (!streamlines_built) {
@@ -2216,8 +2219,71 @@ void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines)
 	for (int i = -10; i <= 10; i++)
 	{
 		for (int j = -10; j <= 10; j++) {
-			std::cout << "building streamline[" << i << "][" << j << "]..." << std::endl;
+			//std::cout << "building streamline[" << i << "][" << j << "]..." << std::endl;
 			build_streamline(i, j);
+		}
+		if (i == -10) {
+			std::cout << "X--------------------" << std::endl;
+		}
+		if (i == -9) {
+			std::cout << "XX-------------------" << std::endl;
+		}
+		if (i == -8) {
+			std::cout << "XXX------------------" << std::endl;
+		}
+		if (i == -7) {
+			std::cout << "XXXX-----------------" << std::endl;
+		}
+		if (i == -6) {
+			std::cout << "XXXXX----------------" << std::endl;
+		}
+		if (i == -5) {
+			std::cout << "XXXXXX---------------" << std::endl;
+		}
+		if (i == -4) {
+			std::cout << "XXXXXXX--------------" << std::endl;
+		}
+		if (i == -3) {
+			std::cout << "XXXXXXXX-------------" << std::endl;
+		}
+		if (i == -2) {
+			std::cout << "XXXXXXXXX------------" << std::endl;
+		}
+		if (i == -1) {
+			std::cout << "XXXXXXXXXX-----------" << std::endl;
+		}
+		if (i == 0) {
+			std::cout << "XXXXXXXXXXX----------" << std::endl;
+		}
+		if (i == 1) {
+			std::cout << "XXXXXXXXXXXX---------" << std::endl;
+		}
+		if (i == 2) {
+			std::cout << "XXXXXXXXXXXXX--------" << std::endl;
+		}
+		if (i == 3) {
+			std::cout << "XXXXXXXXXXXXXX-------" << std::endl;
+		}
+		if (i == 4) {
+			std::cout << "XXXXXXXXXXXXXXX------" << std::endl;
+		}
+		if (i == 5) {
+			std::cout << "XXXXXXXXXXXXXXXX-----" << std::endl;
+		}
+		if (i == 6) {
+			std::cout << "XXXXXXXXXXXXXXXXX----" << std::endl;
+		}
+		if (i == 7) {
+			std::cout << "XXXXXXXXXXXXXXXXXX---" << std::endl;
+		}
+		if (i == 8) {
+			std::cout << "XXXXXXXXXXXXXXXXXXX--" << std::endl;
+		}
+		if (i == 9) {
+			std::cout << "XXXXXXXXXXXXXXXXXXXX-" << std::endl;
+		}
+		if (i == 10) {
+			std::cout << "XXXXXXXXXXXXXXXXXXXXX" << std::endl;
 		}
 	}
 }
