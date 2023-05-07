@@ -1,3 +1,5 @@
+#pragma comment(lib, "glui32.lib")
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -9,6 +11,7 @@
 #include "glError.h"
 #include "gl/glew.h"
 #include "gl/freeglut.h"
+#include "GL/glui.h"
 #include "ply.h"
 #include "icVector.H"
 #include "icMatrix.H"
@@ -50,7 +53,7 @@ int display_mode = 1;
 /*User Interaction related variabes*/
 float s_old, t_old;
 float rotmat[4][4];
-double zoom = 1.0;
+double zoom = 0.72;
 double translation[2] = { 0, 0 };
 int mouse_mode = -2;	// -1 = no action, 1 = tranlate y, 2 = rotate
 
@@ -67,7 +70,7 @@ const double STEP = 0.01; // You should experiment to find the optimal step size
 const int STEP_MAX = 10000; // Upper limit of steps to take for tracing each streamline.
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
-const std::string fname = "../data/image/vader.ppm";
+const std::string fname = "../data/image/hawaii.ppm";
 int alpha = (255 * 0.2);
 ppm img(fname);
 float edge_vectors[NPN][NPN][2]; // For storing the edge field
@@ -88,8 +91,8 @@ Global Variables to be messed with for UI
 ******************************************************************************/
 double brush_width = 0.75;
 double color_jitter = 0.1;
-double brightness = -0.0;
-double opacity = 0.5;
+double brightness = -0.2;
+double opacity = 0.95;
 
 /******************************************************************************
 Forward declaration of functions
@@ -167,11 +170,17 @@ int main(int argc, char* argv[])
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutInitWindowPosition(20, 20);
 	glutInitWindowSize(win_width, win_height);
-	glutCreateWindow("Painterly Rendering");
+	int main_window = glutCreateWindow("Painterly Rendering");
 
 	
 	/*initialize openGL*/
 	init();
+
+	/* Do some GLUI things */
+	GLUI* glui = GLUI_Master.create_glui("GLUI", 0);
+	glui->add_statictext("Simple GLUI Test");
+	glui->set_main_gfx_window(main_window);
+	
 
 	/*the render function and callback registration*/
 	glutKeyboardFunc(keyboard);
@@ -179,7 +188,7 @@ int main(int argc, char* argv[])
 	glutDisplayFunc(display);
 	glutMotionFunc(motion);
 	glutMouseFunc(mouse);
-	glutMouseWheelFunc(mousewheel);
+	//glutMouseWheelFunc(mousewheel);
 	
 	/*event processing loop*/
 	glutMainLoop();
