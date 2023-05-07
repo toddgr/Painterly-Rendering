@@ -67,7 +67,7 @@ const double STEP = 0.01; // You should experiment to find the optimal step size
 const int STEP_MAX = 10000; // Upper limit of steps to take for tracing each streamline.
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
-const std::string fname = "../data/image/teddysmall.ppm";
+const std::string fname = "../data/image/vader.ppm";
 int alpha = (255 * 0.2);
 ppm img(fname);
 float edge_vectors[NPN][NPN][2]; // For storing the edge field
@@ -88,7 +88,8 @@ Global Variables to be messed with for UI
 ******************************************************************************/
 double brush_width = 0.75;
 double color_jitter = 0.1;
-double brightness = -0.2;
+double brightness = -0.0;
+double opacity = 0.5;
 
 /******************************************************************************
 Forward declaration of functions
@@ -166,7 +167,7 @@ int main(int argc, char* argv[])
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutInitWindowPosition(20, 20);
 	glutInitWindowSize(win_width, win_height);
-	glutCreateWindow("Painterly Rendering Demo");
+	glutCreateWindow("Painterly Rendering");
 
 	
 	/*initialize openGL*/
@@ -1117,11 +1118,13 @@ void display_polyhedron(Polyhedron* poly)
 	{
 		glEnable(GL_LIGHTING);
 		glEnable(GL_LIGHT0);
-		glEnable(GL_LIGHT1);
+		glEnable(GL_LIGHT1);	
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable(GL_BLEND);
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		GLfloat mat_diffuse[4] = { 0.75, 0.75, 0.75, 0.0 };
-		GLfloat mat_specular[] = { 0.75, 0.75, 0.75, 1.0 };
+		GLfloat mat_diffuse[4] = { 0.0, 0.0, 0.0, 0.0 };
+		GLfloat mat_specular[] = { 0.0, 0.0, 0.0, 0.0 };
 		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
 		glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
 		glMaterialf(GL_FRONT, GL_SHININESS, 50.0);
@@ -1139,7 +1142,7 @@ void display_polyhedron(Polyhedron* poly)
 
 		initImage();
 		imageFilter(fname);
-		displayImage();
+		//displayImage();
 
 		// draw points
 		// Here, convert the vertex to pixel space and sample the color at that point on the image.
@@ -1152,7 +1155,7 @@ void display_polyhedron(Polyhedron* poly)
 			if (point != prevpoint) {
 				icVector3 color = findPixelColor(icVector3(point.x, point.y, point.z));
 				//std::cout << "drawing point " << k << " at {" << point.x << ", " << point.y << ", " << point.z << "}..." << std::endl;
-				drawDot(point.x, point.y, point.z, brush_width, color.x, color.y, color.z);
+				drawDot(point.x, point.y, point.z, brush_width, color.x, color.y, color.z, opacity);
 			}
 			prevpoint = point;
 		}

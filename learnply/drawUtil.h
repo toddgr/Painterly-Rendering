@@ -10,7 +10,7 @@
 // R: red channel for the dot color [0,1]
 // B: blue channel for the dot color [0,1]
 // G: green channel of the dot color [0,1]
-void drawDot(double x, double y, double z, double radius = 0.15, float R = 0.0, float G = 0.0, float B = 0.0)
+void drawDot(double x, double y, double z, double radius = 0.15, float R = 0.0, float G = 0.0, float B = 0.0, float A = 1.0)
 {
 	glDisable(GL_POLYGON_OFFSET_FILL);
 	glEnable(GL_DEPTH_TEST);
@@ -27,7 +27,7 @@ void drawDot(double x, double y, double z, double radius = 0.15, float R = 0.0, 
 	mat_diffuse[0] = R;
 	mat_diffuse[1] = G;
 	mat_diffuse[2] = B;
-	mat_diffuse[3] = 1.0;
+	mat_diffuse[3] = A;
 
 	CHECK_GL_ERROR();
 
@@ -39,7 +39,7 @@ void drawDot(double x, double y, double z, double radius = 0.15, float R = 0.0, 
 	glPushMatrix();
 	glTranslated(x, y, z);
 	glColor3f(R, G, B);
-	gluSphere(quadric, radius, 16, 16);
+	gluSphere(quadric, radius, 8, 8);
 	glPopMatrix();
 	gluDeleteQuadric(quadric);
 }
