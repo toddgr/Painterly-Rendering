@@ -68,7 +68,7 @@ unsigned char* pixels;
 
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
-std::string fname = "../data/image/hawaii.ppm";
+std::string fname = "../data/image/tulips.ppm";
 int alpha = (255 * 0.2);
 ppm img(fname);
 float edge_vectors[NPN][NPN][2]; // For storing the edge field
@@ -97,7 +97,12 @@ bool blur_image = false;
 int gauss = (int)blur_image;
 float sigma = 1.;
 int STEP_MAX = 1000; // Upper limit of steps to take for tracing each streamline.
-double STEP = 0.001; // You should experiment to find the optimal step size.
+					// The smaller this is, the shorter the streamline...?
+double STEP = 0.01; // You should experiment to find the optimal step size.
+					// The higher this is, the blockier/blurrier the painting is going to be
+					// or the further apart the dots are going to be
+
+int step_int = 10; // divide by 1000 to get 0.01
 
 double color_jitter = 0.1;
 float jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
@@ -108,8 +113,8 @@ double num_strokes = stroke_percentage * 0.01;
 int opacity_percentage = 100;
 double opacity = 1.0;
 
-GLUI_RadioGroup* debug_group, *smoothing_group;
-GLUI_Listbox* num_strokes_list, *opacity_list;
+GLUI_RadioGroup* debug_group, *smoothing_group, *styles_group;
+GLUI_Listbox* num_strokes_list, *opacity_list, *step_max_list, *step_list;
 
 /******************************************************************************
 Forward declaration of functions
@@ -176,6 +181,9 @@ void sigmaVal(int);
 void brushWidth(int);
 void changeBrushStrokeNum(int);
 void changeOpacity(int);
+void changeStepMax(int);
+void changeStep(int);
+void renderStyles(int);
 
 /******************************************************************************
 Main program.
@@ -225,7 +233,7 @@ int main(int argc, char* argv[])
 	glui->add_radiobutton_to_group(debug_group, "Streamlines");
 	glui->add_radiobutton_to_group(debug_group, "Brush Strokes");
 
-	glui->add_separator();
+	glui->add_column(true);
 
 	GLUI_EditText* brush_width_editor =
 		glui->add_edittext("Brush size: ", GLUI_EDITTEXT_FLOAT, &brush_width, 1, brushWidth);
@@ -237,8 +245,6 @@ int main(int argc, char* argv[])
 	num_strokes_list->add_item(200, "Light");
 	num_strokes_list->add_item(50, "Heavy");
 
-	glui->add_column(true);
-
 	opacity_list =
 		glui->add_listbox("Opacity: ", &opacity_percentage, 100, changeOpacity);
 
@@ -247,6 +253,25 @@ int main(int argc, char* argv[])
 	opacity_list->add_item(50, "50%");
 	opacity_list->add_item(25, "25%");
 	opacity_list->add_item(0, "0%");
+
+	step_max_list =
+		glui->add_listbox("STEP_MAX: ", &STEP_MAX, 1000, changeStepMax);
+
+	step_max_list->add_item(1000, "1000");
+	step_max_list->add_item(5000, "5000");
+	step_max_list->add_item(75000, "75000");
+	step_max_list->add_item(750, "750");
+	step_max_list->add_item(500, "500");
+
+	step_list =
+		glui->add_listbox("STEP: ", &step_int, 10, changeStep);
+
+	step_list->add_item(10, "0.01");
+	step_list->add_item(1, "0.001");
+	step_list->add_item(100, "0.1");
+	step_list->add_item(500, "0.5");
+	step_list->add_item(50, "0.05");
+	step_list->add_item(5, "0.005");
 
 	//GLUI_Panel* smoothing_panel = glui->add_panel("Smoothing");
 	//glui->add_checkbox_to_panel(smoothing_panel, "Smoothing", &gauss, 0, checkForSmoothing);
@@ -259,6 +284,13 @@ int main(int argc, char* argv[])
 	glui->add_button("Apply", 0, (GLUI_Update_CB)glutPostRedisplay);
 	glui->add_button("Quit", 0, (GLUI_Update_CB)exit);
 
+	glui->add_column(true);
+
+	GLUI_Panel* styles_panel = glui->add_panel("Styles");
+	styles_group = glui->add_radiogroup_to_panel(styles_panel, NULL, 0, renderStyles);
+	glui->add_radiobutton_to_group(styles_group, "Pointillistic");
+	glui->add_radiobutton_to_group(styles_group, "Impressionistic");
+	glui->add_radiobutton_to_group(styles_group, "WaterColor");
 
 	// Eventually we are going to change this radio button group to be
 	// something like default styles.
@@ -2630,7 +2662,7 @@ void changeBrushStrokeNum(int bsp) {
 
 	display_mode = 4;
 	if (!streamlines_built) findMinMaxField(min, max);
-	std::cout << "\nChanging brush stroke concentration to " << stroke_percentage << "%" << std::endl;
+	std::cout << "\nChanging brush stroke concentration to " << num_strokes << std::endl;
 
 	if (blur_image) {
 		initGauss(sigma);
@@ -2670,4 +2702,156 @@ void changeOpacity(int op) {
 	streamlines_built = true;
 
 	glutPostRedisplay();
+}
+
+void changeStepMax(int sm) {
+	STEP_MAX = step_max_list->get_int_val();
+
+	display_mode = 4;
+	if (!streamlines_built) findMinMaxField(min, max);
+	std::cout << "\nChanging STEP_MAX to " << STEP_MAX << std::endl;
+
+	if (blur_image) {
+		initGauss(sigma);
+	}
+	sobelFilter(fname);
+
+	//if (!streamlines_built) {
+		// clear out lines and points
+		lines.clear();
+		points.clear();
+		// make dots along x and y axes
+		draw_lines(&points, &streamlines);
+	//}
+	streamlines_built = true;
+
+	glutPostRedisplay();
+}
+
+void changeStep(int) {
+	step_int = step_list->get_int_val();
+	STEP = step_int / static_cast<double>(1000);
+
+	display_mode = 4;
+	if (!streamlines_built) findMinMaxField(min, max);
+	std::cout << "\nChanging STEP to " << STEP << std::endl;
+
+	if (blur_image) {
+		initGauss(sigma);
+	}
+	sobelFilter(fname);
+
+	//if (!streamlines_built) {
+		// clear out lines and points
+		lines.clear();
+		points.clear();
+		// make dots along x and y axes
+		draw_lines(&points, &streamlines);
+	//}
+	streamlines_built = true;
+
+	glutPostRedisplay();
+}
+
+void renderStyles(int style) {
+	style = styles_group->get_int_val();
+
+	switch (style) {
+	case 0: // Pointillistic
+	{
+		std::cout << "Pointillistic" << std::endl;
+		brush_width = 0.25;
+		num_strokes = 0.5;
+		opacity = 0.5;
+		STEP_MAX = 1000;
+		STEP = 0.5;
+
+		display_mode = 4;
+		if (!streamlines_built) findMinMaxField(min, max);
+		std::cout << "\nChanging brush size to " << brush_width << std::endl;
+		std::cout << "\nChanging num strokes to " << num_strokes << std::endl;
+		std::cout << "\nChanging opacity to " << opacity << std::endl;
+		std::cout << "\nChanging STEP_MAX to " << STEP_MAX << std::endl;
+		std::cout << "\nChanging STEP to " << STEP << std::endl;
+
+		if (blur_image) {
+			initGauss(sigma);
+		}
+		sobelFilter(fname);
+
+		// clear out lines and points
+		lines.clear();
+		points.clear();
+		// make dots along x and y axes
+		draw_lines(&points, &streamlines);
+		streamlines_built = true;
+
+		glutPostRedisplay();
+	}
+	break;
+	case 1: // Impressionistic
+	{
+		std::cout << "Impressionistic" << std::endl;
+		brush_width = 0.25;
+		num_strokes = 0.5;
+		opacity = 0.25;
+		STEP_MAX = 750;
+		STEP = 0.1;
+
+		display_mode = 4;
+		if (!streamlines_built) findMinMaxField(min, max);
+		std::cout << "\nChanging brush size to " << brush_width << std::endl;
+		std::cout << "\nChanging num strokes to " << num_strokes << std::endl;
+		std::cout << "\nChanging opacity to " << opacity << std::endl;
+		std::cout << "\nChanging STEP_MAX to " << STEP_MAX << std::endl;
+		std::cout << "\nChanging STEP to " << STEP << std::endl;
+
+		if (blur_image) {
+			initGauss(sigma);
+		}
+		sobelFilter(fname);
+
+		// clear out lines and points
+		lines.clear();
+		points.clear();
+		// make dots along x and y axes
+		draw_lines(&points, &streamlines);
+		streamlines_built = true;
+
+		glutPostRedisplay();
+	}
+	break;
+	case 2: // Watercolor
+	{
+		std::cout << "Watercolor" << std::endl;
+		brush_width = 1.25;
+		num_strokes = 2.;
+		opacity = 0.25;
+		STEP_MAX = 500;
+		STEP = 0.5;
+
+		display_mode = 4;
+		if (!streamlines_built) findMinMaxField(min, max);
+		std::cout << "\nChanging brush size to " << brush_width << std::endl;
+		std::cout << "\nChanging num strokes to " << num_strokes << std::endl;
+		std::cout << "\nChanging opacity to " << opacity << std::endl;
+		std::cout << "\nChanging STEP_MAX to " << STEP_MAX << std::endl;
+		std::cout << "\nChanging STEP to " << STEP << std::endl;
+
+		if (blur_image) {
+			initGauss(sigma);
+		}
+		sobelFilter(fname);
+
+		// clear out lines and points
+		lines.clear();
+		points.clear();
+		// make dots along x and y axes
+		draw_lines(&points, &streamlines);
+		streamlines_built = true;
+
+		glutPostRedisplay();
+	}
+	break;
+	}
 }
