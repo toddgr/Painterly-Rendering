@@ -70,7 +70,7 @@ const double STEP = 0.01; // You should experiment to find the optimal step size
 const int STEP_MAX = 10000; // Upper limit of steps to take for tracing each streamline.
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
-const std::string fname = "../data/image/hawaii.ppm";
+std::string fname = "../data/image/tulips.ppm";
 int alpha = (255 * 0.2);
 ppm img(fname);
 float edge_vectors[NPN][NPN][2]; // For storing the edge field
@@ -89,10 +89,13 @@ int cmax = NPN - 1;
 /*****************************************************************************
 Global Variables to be messed with for UI
 ******************************************************************************/
+int main_window;
 double brush_width = 0.75;
 double color_jitter = 0.1;
 double brightness = -0.2;
 double opacity = 0.95;
+int* vis_version = 0;
+bool streamlines_built;
 
 /******************************************************************************
 Forward declaration of functions
@@ -109,6 +112,7 @@ void display(void);
 void mouse(int button, int state, int x, int y);
 void mousewheel(int wheel, int direction, int x, int y);
 void reshape(int width, int height);
+void myGlutIdle(void);
 
 /*functions for element picking*/
 void display_vertices(GLenum mode, Polyhedron* poly);
@@ -150,6 +154,11 @@ void print_test_points();
 void print_pixel_color_neighbors(int i, int j);
 
 /******************************************************************************
+UI Functions
+******************************************************************************/
+void renderStep(int);
+
+/******************************************************************************
 Main program.
 ******************************************************************************/
 
@@ -168,19 +177,13 @@ int main(int argc, char* argv[])
 	/*init glut and create window*/
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-	glutInitWindowPosition(20, 20);
+	glutInitWindowPosition(20,50);
 	glutInitWindowSize(win_width, win_height);
-	int main_window = glutCreateWindow("Painterly Rendering");
+	main_window = glutCreateWindow("Painterly Rendering");
 
 	
 	/*initialize openGL*/
 	init();
-
-	/* Do some GLUI things */
-	GLUI* glui = GLUI_Master.create_glui("GLUI", 0);
-	glui->add_statictext("Simple GLUI Test");
-	glui->set_main_gfx_window(main_window);
-	
 
 	/*the render function and callback registration*/
 	glutKeyboardFunc(keyboard);
@@ -188,7 +191,35 @@ int main(int argc, char* argv[])
 	glutDisplayFunc(display);
 	glutMotionFunc(motion);
 	glutMouseFunc(mouse);
+	glutIdleFunc(myGlutIdle);
 	//glutMouseWheelFunc(mousewheel);
+
+
+	/* Do some GLUI stuff */
+	GLUI* glui = GLUI_Master.create_glui("Painterly Rendering User Interface", 0, win_width + 50, 50);
+	glui->add_statictext("Simple GLUI Test :DDDDDDDDDDDDDDDDDDDDDDDDDDDD");
+	
+	GLUI_EditText* edittext =
+		glui->add_edittext("Filepath:", GLUI_EDITTEXT_TEXT, &fname);
+
+	GLUI_Panel* obj_panel = glui->add_panel("Object Type");
+	GLUI_RadioGroup* group1 =
+		glui->add_radiogroup_to_panel(obj_panel, vis_version, 0, renderStep);
+	glui->add_radiobutton_to_group(group1, "OG Image");
+	glui->add_radiobutton_to_group(group1, "Sobel");
+
+	glui->add_button("Quit", 0, (GLUI_Update_CB)exit);
+
+
+	// Eventually we are going to change this radio button group to be
+	// something like default styles.
+
+	glui->set_main_gfx_window(main_window);
+	GLUI_Master.set_glutIdleFunc(myGlutIdle);
+	GLUI_Master.set_glutKeyboardFunc(keyboard);
+	GLUI_Master.set_glutMouseFunc(mouse);
+	GLUI_Master.set_glutReshapeFunc(reshape);
+
 	
 	/*event processing loop*/
 	glutMainLoop();
@@ -493,8 +524,8 @@ void keyboard(unsigned char key, int x, int y) {
 	double sigma = 1.;
 
 	// clear out lines and points
-	lines.clear();
-	points.clear();
+	//lines.clear();
+	//points.clear();
 
 	initImage();	// Initialize image out of input file
 	initSobel();
@@ -559,17 +590,17 @@ void keyboard(unsigned char key, int x, int y) {
 		//initImage();
 		//imageFilter(fname);
 
-		//if (!streamlines_built) {
-			//draw_lines(&points, &streamlines);
+		if (!streamlines_built) {
+			draw_lines(&points, &streamlines);
 			//print_test_points();
 			//print_pixel_color_neighbors(64, 64);
 			//print_pixel_color_neighbors(140, 140);
 			//print_pixel_color_neighbors(192, 192);
-			//streamlines_built = true;
-		//}
+			streamlines_built = true;
+		}
 
-			// make dots along x and y axes
-		draw_lines(&points, &streamlines);
+		// make dots along x and y axes
+		//draw_lines(&points, &streamlines);
 
 		glutPostRedisplay();
 	}
@@ -586,11 +617,11 @@ void keyboard(unsigned char key, int x, int y) {
 		}
 		sobelFilter(fname);
 
-		//if (!streamlines_built) {
+		if (!streamlines_built) {
 			draw_lines(&points, &streamlines);
 			//print_test_points();
-			//streamlines_built = true;
-		//}
+			streamlines_built = true;
+		}
 		
 		glutPostRedisplay();
 		break;
@@ -861,6 +892,11 @@ void reshape(int width, int height)
 	// reset IBFV pixels buffer
 	free(pixels);
 	initIBFV();
+}
+
+void myGlutIdle(void) {
+	glutSetWindow(main_window);
+	glutPostRedisplay();
 }
 
 /******************************************************************************
@@ -2396,4 +2432,79 @@ void print_pixel_color_neighbors(int i, int j) {
 		<< " {" << (float)(img.r[(NPN - i) * NPN + j + 1]) << ", "
 		<< (float)(img.g[(NPN - i) * NPN + j + 1]) << ", "
 		<< (float)(img.b[(NPN - i) * NPN + j + 1]) << "}" << std::endl;
+}
+
+
+// Figures out which step to be rendered based on radio button input from
+// the user interface
+void renderStep(int step) {
+	int i;
+	double sigma = 1.;
+
+	// clear out lines and points
+	lines.clear();
+	points.clear();
+
+	initImage();	// Initialize image out of input file
+	initSobel();
+	imageFilter(fname);
+
+	switch (step) {
+	case 0:
+	{
+		display_mode = 7;	// Display mode for original image
+		printf("Displaying original image.\n");
+		//initImage();	// Initialize image out of input file
+		imageFilter(fname);
+		glutPostRedisplay();
+	}
+	break;
+
+	case 1:  // Edge field - Sobel filter implementation
+	{
+		display_mode = 8;
+		printf("Displaying Sobel image.\n");
+		imageFilter(fname);
+		if (blur_image) {
+			initGauss(sigma);
+		}
+		sobelFilter(fname);
+		glutPostRedisplay();
+	}
+	break;
+
+	case 2:	// streamline display over original image
+	{
+		display_mode = 3;
+		findMinMaxField(min, max);
+		std::cout << "\nDrawing streamlines" << std::endl;
+
+		if (blur_image) {
+			initGauss(sigma);
+		}
+
+		sobelFilter(fname);
+
+		// make dots along x and y axes
+		draw_lines(&points, &streamlines);
+
+		glutPostRedisplay();
+	}
+	break;
+
+	case 3:	// Brush stroke display
+		display_mode = 4;
+		findMinMaxField(min, max);
+		std::cout << "\nDrawing brush strokes" << std::endl;
+
+		if (blur_image) {
+			initGauss(sigma);
+		}
+		sobelFilter(fname);
+
+		draw_lines(&points, &streamlines);
+
+		glutPostRedisplay();
+		break;
+	}
 }
