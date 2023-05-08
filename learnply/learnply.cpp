@@ -204,10 +204,12 @@ int main(int argc, char* argv[])
 	GLUI_EditText* edittext =
 		glui->add_edittext("Filepath:", GLUI_EDITTEXT_TEXT, &fname);
 
-	GLUI_Panel* obj_panel = glui->add_panel("Object Type");
+	GLUI_Panel* obj_panel = glui->add_panel("Debug");
 	group1 = glui->add_radiogroup_to_panel(obj_panel, vis_version, 0, renderStep);
 	glui->add_radiobutton_to_group(group1, "OG Image");
 	glui->add_radiobutton_to_group(group1, "Sobel");
+	glui->add_radiobutton_to_group(group1, "Streamlines");
+	glui->add_radiobutton_to_group(group1, "Brush Strokes");
 
 	glui->add_button("Quit", 0, (GLUI_Update_CB)exit);
 
@@ -528,9 +530,9 @@ void keyboard(unsigned char key, int x, int y) {
 	//lines.clear();
 	//points.clear();
 
-	initImage();	// Initialize image out of input file
-	initSobel();
-	imageFilter(fname);
+	//initImage();	// Initialize image out of input file
+	//initSobel();
+	//imageFilter(fname);
 
 	switch (key) {
 	case 27:	// set excape key to exit program
@@ -2458,9 +2460,12 @@ void renderStep(int step) {
 
 	step = group1->get_int_val();
 
-	// clear out lines and points
-	lines.clear();
-	points.clear();
+	if (!streamlines_built) {
+		// clear out lines and points
+		lines.clear();
+		points.clear();
+	}
+
 
 	initImage();	// Initialize image out of input file
 	initSobel();
@@ -2493,7 +2498,7 @@ void renderStep(int step) {
 	case 2:	// streamline display over original image
 	{
 		display_mode = 3;
-		findMinMaxField(min, max);
+		if (!streamlines_built) findMinMaxField(min, max);
 		std::cout << "\nDrawing streamlines" << std::endl;
 
 		if (blur_image) {
@@ -2502,8 +2507,11 @@ void renderStep(int step) {
 
 		sobelFilter(fname);
 
-		// make dots along x and y axes
-		draw_lines(&points, &streamlines);
+		if (!streamlines_built) {
+			// make dots along x and y axes
+			draw_lines(&points, &streamlines);
+		}
+		streamlines_built = true;
 
 		glutPostRedisplay();
 	}
@@ -2511,7 +2519,7 @@ void renderStep(int step) {
 
 	case 3:	// Brush stroke display
 		display_mode = 4;
-		findMinMaxField(min, max);
+		if (!streamlines_built) findMinMaxField(min, max);
 		std::cout << "\nDrawing brush strokes" << std::endl;
 
 		if (blur_image) {
@@ -2519,7 +2527,11 @@ void renderStep(int step) {
 		}
 		sobelFilter(fname);
 
-		draw_lines(&points, &streamlines);
+		if (!streamlines_built) {
+			// make dots along x and y axes
+			draw_lines(&points, &streamlines);
+		}
+		streamlines_built = true;
 
 		glutPostRedisplay();
 		break;
