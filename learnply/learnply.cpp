@@ -102,7 +102,11 @@ double STEP = 0.001; // You should experiment to find the optimal step size.
 double color_jitter = 0.1;
 float jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
 
+int stroke_percentage = 100; // 50%, 100%, 200%, etc.
+double num_strokes = stroke_percentage * 0.01; 
+
 GLUI_RadioGroup* debug_group, *smoothing_group;
+GLUI_Listbox* num_strokes_list;
 
 /******************************************************************************
 Forward declaration of functions
@@ -167,6 +171,7 @@ void renderStep(int);
 void checkForSmoothing(int);
 void sigmaVal(int);
 void brushWidth(int);
+void changeBrushStrokeNum(int);
 
 /******************************************************************************
 Main program.
@@ -221,6 +226,13 @@ int main(int argc, char* argv[])
 	GLUI_EditText* brush_width_editor =
 		glui->add_edittext("Brush size: ", GLUI_EDITTEXT_FLOAT, &brush_width, 1, brushWidth);
 
+	num_strokes_list =
+		glui->add_listbox("Number of Brush Strokes: ", &stroke_percentage, 100, changeBrushStrokeNum);
+	
+	num_strokes_list->add_item(100, "Normal");
+	num_strokes_list->add_item(200, "Light");
+	num_strokes_list->add_item(50, "Heavy");
+
 	glui->add_column(true);
 
 	GLUI_Panel* smoothing_panel = glui->add_panel("Smoothing");
@@ -231,6 +243,7 @@ int main(int argc, char* argv[])
 	glui->add_radiobutton_to_group(smoothing_group, "3.");
 	glui->add_radiobutton_to_group(smoothing_group, "5.");
 
+	glui->add_button("Apply", 0, (GLUI_Update_CB)glutPostRedisplay);
 	glui->add_button("Quit", 0, (GLUI_Update_CB)exit);
 
 
@@ -1183,8 +1196,9 @@ void display_polyhedron(Polyhedron* poly)
 			}
 			glEnd();
 		}
-
-		//displayImage();
+		//initImage();
+		imageFilter(fname);
+		displayImage();
 
 		// draw lines
 		for (int k = 0; k < streamlines.size(); k++)
@@ -1224,7 +1238,7 @@ void display_polyhedron(Polyhedron* poly)
 
 		initImage();
 		imageFilter(fname);
-		//displayImage();
+		displayImage();
 
 		// draw points
 		// Here, convert the vertex to pixel space and sample the color at that point on the image.
@@ -2316,9 +2330,9 @@ void initGauss(double std_dev)
 void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines)
 {
 	// make dots along x and y axes
-	for (int i = -10; i <= 10; i++)
+	for (double i = min.x; i <= max.x; i+= num_strokes)
 	{
-		for (int j = -10; j <= 10; j++) {
+		for (double j = min.y; j <= max.y; j+= num_strokes) {
 			//std::cout << "building streamline[" << i << "][" << j << "]..." << std::endl;
 			build_streamline(i, j);
 		}
@@ -2586,12 +2600,36 @@ void brushWidth(int b) {
 	sobelFilter(fname);
 
 	if (!streamlines_built) {
+		// clear out lines and points
+		lines.clear();
+		points.clear();
 		// make dots along x and y axes
 		draw_lines(&points, &streamlines);
 	}
 	streamlines_built = true;
 
 	glutPostRedisplay();
+}
 
-	std::cout << "done :)" << std::endl;
+void changeBrushStrokeNum(int bsp) {
+	stroke_percentage = num_strokes_list->get_int_val();
+	num_strokes = stroke_percentage * 0.01;
+
+	display_mode = 4;
+	if (!streamlines_built) findMinMaxField(min, max);
+	std::cout << "\nChanging brush stroke concentration to " << stroke_percentage << "%" << std::endl;
+
+	if (blur_image) {
+		initGauss(sigma);
+	}
+	sobelFilter(fname);
+
+	// make dots along x and y axes
+	// clear out lines and points
+	lines.clear();
+	points.clear();
+	draw_lines(&points, &streamlines);
+	streamlines_built = true;
+
+	glutPostRedisplay();
 }
