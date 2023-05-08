@@ -30,6 +30,8 @@ std::vector<icVector3> sources;
 std::vector<icVector3> saddles;
 std::vector<icVector3> higher_order;
 std::vector<icVector3> points;
+std::vector<Vertex> unsorted_points;
+std::vector<Vertex> sorted_points;
 /*scene related variables*/
 const float zoomspeed = 0.9;
 int win_width = 1024;
@@ -68,7 +70,7 @@ unsigned char* pixels;
 
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
-std::string fname = "../data/image/kylo.ppm";
+std::string fname = "../data/image/tulips.ppm";
 int alpha = (255 * 0.2);
 ppm img(fname);
 float edge_vectors[NPN][NPN][2]; // For storing the edge field
@@ -156,6 +158,9 @@ void build_streamline(double x, double y);
 void findMinMaxField(icVector3& min, icVector3& max);
 icVector3 quadToTexture(double x, double y, double z);
 icVector3 findPixelColor(icVector3 v, float jitter);
+void swap(Vertex& a, Vertex& b);
+void quicksort(std::vector<Vertex>& colored_points, int left, int right);
+void sortColors();
 
 // For displaying image
 void initImage();
@@ -1296,21 +1301,32 @@ void display_polyhedron(Polyhedron* poly)
 		imageFilter(fname);
 		displayImage();
 
-		// draw points
-		// Here, convert the vertex to pixel space and sample the color at that point on the image.
-		// set that color to be that same as the stroke that we are drawing.
-		//std::cout << "drawing points now" << std::endl;
+		unsorted_points.clear();
+
+		// if streamlines havent been built yet
+		// add color to points
 		icVector3 prevpoint = icVector3(0., 0., 0.);
 		for (int k = 0; k < points.size(); k++)
 		{
 			icVector3 point = points[k];
 			if (point != prevpoint) {
 				icVector3 color = findPixelColor(icVector3(point.x, point.y, point.z), jitter);
-				//std::cout << "drawing point " << k << " at {" << point.x << ", " << point.y << ", " << point.z << "}..." << std::endl;
+				//don't draw them yet... instead push them to a vector to be sorted
 				drawDot(point.x, point.y, point.z, brush_width, color.x, color.y, color.z, opacity);
+				//unsorted_points.push_back(Vertex(point.x, point.y, point.z, color.x, color.y, color.z));
 			}
 			prevpoint = point;
 		}
+
+		// sort points
+		//sortColors();
+		//quicksort(unsorted_points, 0, unsorted_points.size() - 1);
+
+		// draw points in sorted order
+		//for (int i = 0; i < unsorted_points.size(); i++) {
+		//	Vertex point = unsorted_points[i];
+		//	drawDot(point.x, point.y, point.z, brush_width, point.R, point.G, point.B, opacity);
+		//}
 	}
 	break;
 
@@ -1846,6 +1862,76 @@ icVector3 findPixelColor(icVector3 v, float jitter) {
 
 	// return
 	return icVector3(r, g, b);
+}
+
+// Sort the points based on the user input
+// can sort by r, g, or b.
+// maybe in the future also have ascending and descending for each value as well
+void swap(Vertex& a, Vertex& b) {
+	// swap two points
+	Vertex temp = a;
+	a = b;
+	b = temp;
+}
+
+int partition(std::vector<Vertex>& colored_points, int low, int high) {
+	// currently comparing R values only
+	Vertex pivot = colored_points[high];
+	int i = low - 1;
+
+	for (int j = low; j < high; j++) {
+		if (colored_points[j].R <= pivot.R) {
+			i++;
+			// swap the two vertices
+			swap(colored_points[i], colored_points[j]);
+		}
+	}
+
+	swap(colored_points[i + 1], colored_points[high]);
+	// returns the next partition val
+	return i + 1;
+}
+
+void quicksort(std::vector<Vertex>& colored_points, int left, int right) {
+	//if (low < high) {
+	//	int pi = partition(unsorted_points, low, high);
+
+	//	quicksort(unsorted_points, low, pi - 1);
+	//	if (high == unsorted_points.size() - 1) {
+	//		std::cout << "reached the end?" << std::endl;
+	//	}
+	//	quicksort(unsorted_points, pi + 1, high);
+	//}
+
+	if (left >= right) {
+		return;
+	}
+
+	double pivot = colored_points[(left + right) / 2].G;
+	int i = left, j = right;
+
+	while (i <= j) {
+		while (colored_points[i].G < pivot) {
+			i++;
+		}
+		while (colored_points[j].G > pivot) {
+			j--;
+		}
+		if (i <= j) {
+			swap(colored_points[i], colored_points[j]);
+			i++;
+			j--;
+		}
+	}
+
+	quicksort(colored_points, left, j);
+	quicksort(colored_points, i, right);
+}
+
+void sortColors() {
+	// check which channel to sort by
+	// use switch
+	quicksort(unsorted_points, 0, unsorted_points.size() - 1);
 }
 
 // Initialize image to be displayed
@@ -2766,6 +2852,9 @@ void changeStep(int) {
 
 void renderStyles(int style) {
 	style = styles_group->get_int_val();
+	// clear out lines and points
+	lines.clear();
+	points.clear();
 
 	switch (style) {
 	case 0:
@@ -2796,8 +2885,8 @@ void renderStyles(int style) {
 		sobelFilter(fname);
 
 		// clear out lines and points
-		lines.clear();
-		points.clear();
+	/*	lines.clear();
+		points.clear();*/
 		// make dots along x and y axes
 		draw_lines(&points, &streamlines);
 		streamlines_built = true;
@@ -2828,8 +2917,8 @@ void renderStyles(int style) {
 		sobelFilter(fname);
 
 		// clear out lines and points
-		lines.clear();
-		points.clear();
+		//lines.clear();
+		//points.clear();
 		// make dots along x and y axes
 		draw_lines(&points, &streamlines);
 		streamlines_built = true;
@@ -2860,10 +2949,9 @@ void renderStyles(int style) {
 			initGauss(sigma);
 		}
 		sobelFilter(fname);
-
 		// clear out lines and points
-		lines.clear();
-		points.clear();
+		//lines.clear();
+		//points.clear();
 		// make dots along x and y axes
 		draw_lines(&points, &streamlines);
 		streamlines_built = true;
