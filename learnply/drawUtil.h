@@ -19,6 +19,8 @@ void drawDot(double x, double y, double z, double radius = 0.15, float R = 0.0, 
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
 	glEnable(GL_LIGHT1);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
 	glMatrixMode(GL_MODELVIEW);
 
 	CHECK_GL_ERROR();
@@ -38,7 +40,7 @@ void drawDot(double x, double y, double z, double radius = 0.15, float R = 0.0, 
 	GLUquadric* quadric = gluNewQuadric();
 	glPushMatrix();
 	glTranslated(x, y, z);
-	glColor3f(R, G, B);
+	glColor4f(R, G, B, A);
 	gluSphere(quadric, radius, 8, 8);
 	glPopMatrix();
 	gluDeleteQuadric(quadric);

@@ -90,7 +90,7 @@ int main_window;
 float brush_width = 0.75;
 float* brush_width_p = &brush_width;
 double brightness = -0.2;
-double opacity = 0.95;
+
 int* vis_version = 0;
 bool streamlines_built;
 bool blur_image = false;
@@ -105,8 +105,11 @@ float jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(c
 int stroke_percentage = 100; // 50%, 100%, 200%, etc.
 double num_strokes = stroke_percentage * 0.01; 
 
+int opacity_percentage = 100;
+double opacity = 1.0;
+
 GLUI_RadioGroup* debug_group, *smoothing_group;
-GLUI_Listbox* num_strokes_list;
+GLUI_Listbox* num_strokes_list, *opacity_list;
 
 /******************************************************************************
 Forward declaration of functions
@@ -172,6 +175,7 @@ void checkForSmoothing(int);
 void sigmaVal(int);
 void brushWidth(int);
 void changeBrushStrokeNum(int);
+void changeOpacity(int);
 
 /******************************************************************************
 Main program.
@@ -235,13 +239,22 @@ int main(int argc, char* argv[])
 
 	glui->add_column(true);
 
-	GLUI_Panel* smoothing_panel = glui->add_panel("Smoothing");
-	glui->add_checkbox_to_panel(smoothing_panel, "Smoothing", &gauss, 0, checkForSmoothing);
-	smoothing_group = glui->add_radiogroup_to_panel(smoothing_panel, NULL, 0, sigmaVal);
-	glui->add_radiobutton_to_group(smoothing_group, "0.5");
-	glui->add_radiobutton_to_group(smoothing_group, "1.");
-	glui->add_radiobutton_to_group(smoothing_group, "3.");
-	glui->add_radiobutton_to_group(smoothing_group, "5.");
+	opacity_list =
+		glui->add_listbox("Opacity: ", &opacity_percentage, 100, changeOpacity);
+
+	opacity_list->add_item(100, "100%");
+	opacity_list->add_item(75, "75%");
+	opacity_list->add_item(50, "50%");
+	opacity_list->add_item(25, "25%");
+	opacity_list->add_item(0, "0%");
+
+	//GLUI_Panel* smoothing_panel = glui->add_panel("Smoothing");
+	//glui->add_checkbox_to_panel(smoothing_panel, "Smoothing", &gauss, 0, checkForSmoothing);
+	//smoothing_group = glui->add_radiogroup_to_panel(smoothing_panel, NULL, 0, sigmaVal);
+	//glui->add_radiobutton_to_group(smoothing_group, "0.5");
+	//glui->add_radiobutton_to_group(smoothing_group, "1.");
+	//glui->add_radiobutton_to_group(smoothing_group, "3.");
+	//glui->add_radiobutton_to_group(smoothing_group, "5.");
 
 	glui->add_button("Apply", 0, (GLUI_Update_CB)glutPostRedisplay);
 	glui->add_button("Quit", 0, (GLUI_Update_CB)exit);
@@ -2629,6 +2642,31 @@ void changeBrushStrokeNum(int bsp) {
 	lines.clear();
 	points.clear();
 	draw_lines(&points, &streamlines);
+	streamlines_built = true;
+
+	glutPostRedisplay();
+}
+
+void changeOpacity(int op) {
+	opacity_percentage = opacity_list->get_int_val();
+	opacity = opacity_percentage * 0.01;
+
+	display_mode = 4;
+	if (!streamlines_built) findMinMaxField(min, max);
+	std::cout << "\nChanging brush stroke opacity to " << opacity_percentage << "%" << std::endl;
+
+	if (blur_image) {
+		initGauss(sigma);
+	}
+	sobelFilter(fname);
+
+	if (!streamlines_built) {
+		// clear out lines and points
+		lines.clear();
+		points.clear();
+		// make dots along x and y axes
+		draw_lines(&points, &streamlines);
+	}
 	streamlines_built = true;
 
 	glutPostRedisplay();
