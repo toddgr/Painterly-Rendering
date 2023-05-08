@@ -66,11 +66,11 @@ float tmax = win_width / (SCALE * NPN);
 float dmax = SCALE / win_width;
 unsigned char* pixels;
 
-const double STEP = 0.01; // You should experiment to find the optimal step size.
-const int STEP_MAX = 10000; // Upper limit of steps to take for tracing each streamline.
+const double STEP = 0.001; // You should experiment to find the optimal step size.
+const int STEP_MAX = 1000; // Upper limit of steps to take for tracing each streamline.
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
-std::string fname = "../data/image/tulips.ppm";
+std::string fname = "../data/image/hawaii.ppm";
 int alpha = (255 * 0.2);
 ppm img(fname);
 float edge_vectors[NPN][NPN][2]; // For storing the edge field
@@ -211,6 +211,10 @@ int main(int argc, char* argv[])
 	glui->add_radiobutton_to_group(debug_group, "Sobel");
 	glui->add_radiobutton_to_group(debug_group, "Streamlines");
 	glui->add_radiobutton_to_group(debug_group, "Brush Strokes");
+
+	glui->add_separator();
+
+
 
 	glui->add_column(true);
 
@@ -1232,7 +1236,6 @@ void display_polyhedron(Polyhedron* poly)
 			}
 			prevpoint = point;
 		}
-		break;
 	}
 	break;
 
