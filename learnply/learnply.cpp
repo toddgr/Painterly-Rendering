@@ -75,7 +75,6 @@ int alpha = (255 * 0.2);
 ppm img(fname);
 float edge_vectors[NPN][NPN][2]; // For storing the edge field
 GLubyte image_colors[NPN][NPN][4];	// For accessing pixel colors
-bool blur_image = false;
 #define E 2.71828
 #define PI 3.1415926
 
@@ -96,8 +95,11 @@ double brightness = -0.2;
 double opacity = 0.95;
 int* vis_version = 0;
 bool streamlines_built;
+bool blur_image = false;
+int gauss = (int)blur_image;
+float sigma = 1.;
 
-GLUI_RadioGroup* group1;
+GLUI_RadioGroup* debug_group, *smoothing_group;
 
 /******************************************************************************
 Forward declaration of functions
@@ -159,6 +161,8 @@ void print_pixel_color_neighbors(int i, int j);
 UI Functions
 ******************************************************************************/
 void renderStep(int);
+void checkForSmoothing(int);
+void sigmaVal(int);
 
 /******************************************************************************
 Main program.
@@ -199,17 +203,24 @@ int main(int argc, char* argv[])
 
 	/* Do some GLUI stuff */
 	GLUI* glui = GLUI_Master.create_glui("Painterly Rendering User Interface", 0, win_width + 50, 50);
-	glui->add_statictext("Simple GLUI Test :DDDDDDDDDDDDDDDDDDDDDDDDDDDD");
-	
-	GLUI_EditText* edittext =
-		glui->add_edittext("Filepath:", GLUI_EDITTEXT_TEXT, &fname);
+	//glui->add_statictext("Simple GLUI Test :DDDDDDDDDDDDDDDDDDDDDDDDDDDD");
 
-	GLUI_Panel* obj_panel = glui->add_panel("Debug");
-	group1 = glui->add_radiogroup_to_panel(obj_panel, vis_version, 0, renderStep);
-	glui->add_radiobutton_to_group(group1, "OG Image");
-	glui->add_radiobutton_to_group(group1, "Sobel");
-	glui->add_radiobutton_to_group(group1, "Streamlines");
-	glui->add_radiobutton_to_group(group1, "Brush Strokes");
+	GLUI_Panel* debug_panel = glui->add_panel("Debug");
+	debug_group = glui->add_radiogroup_to_panel(debug_panel, vis_version, 0, renderStep);
+	glui->add_radiobutton_to_group(debug_group, "OG Image");
+	glui->add_radiobutton_to_group(debug_group, "Sobel");
+	glui->add_radiobutton_to_group(debug_group, "Streamlines");
+	glui->add_radiobutton_to_group(debug_group, "Brush Strokes");
+
+	glui->add_column(true);
+
+	GLUI_Panel* smoothing_panel = glui->add_panel("Smoothing");
+	glui->add_checkbox_to_panel(smoothing_panel, "Smoothing", &gauss, 0, checkForSmoothing);
+	smoothing_group = glui->add_radiogroup_to_panel(smoothing_panel, NULL, 0, sigmaVal);
+	glui->add_radiobutton_to_group(smoothing_group, "0.5");
+	glui->add_radiobutton_to_group(smoothing_group, "1.");
+	glui->add_radiobutton_to_group(smoothing_group, "3.");
+	glui->add_radiobutton_to_group(smoothing_group, "5.");
 
 	glui->add_button("Quit", 0, (GLUI_Update_CB)exit);
 
@@ -2456,9 +2467,8 @@ void print_pixel_color_neighbors(int i, int j) {
 // the user interface
 void renderStep(int step) {
 	int i;
-	double sigma = 1.;
 
-	step = group1->get_int_val();
+	step = debug_group->get_int_val();
 
 	if (!streamlines_built) {
 		// clear out lines and points
@@ -2537,4 +2547,23 @@ void renderStep(int step) {
 		break;
 	}
 
+}
+
+void checkForSmoothing(int gauss) {
+	display_mode = 7;	// Display mode for original image
+	printf("Displaying blurred image.\n");
+	blur_image = !blur_image;
+	//imageFilter(fname);
+	if (blur_image) { initGauss(sigma);}
+	else { initGauss(0.); }
+	//gaussBlur(fname, 1.);
+	printf("Done.\n");
+	glutPostRedisplay();
+}
+
+void sigmaVal(int sig) {
+	sig = smoothing_group->get_int_val();
+	
+	initGauss(sig);
+	glutPostRedisplay();
 }
