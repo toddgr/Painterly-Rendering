@@ -66,8 +66,6 @@ float tmax = win_width / (SCALE * NPN);
 float dmax = SCALE / win_width;
 unsigned char* pixels;
 
-const double STEP = 0.001; // You should experiment to find the optimal step size.
-const int STEP_MAX = 1000; // Upper limit of steps to take for tracing each streamline.
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
 std::string fname = "../data/image/hawaii.ppm";
@@ -89,8 +87,8 @@ int cmax = NPN - 1;
 Global Variables to be messed with for UI
 ******************************************************************************/
 int main_window;
-double brush_width = 0.75;
-double color_jitter = 0.1;
+float brush_width = 0.75;
+float* brush_width_p = &brush_width;
 double brightness = -0.2;
 double opacity = 0.95;
 int* vis_version = 0;
@@ -98,6 +96,11 @@ bool streamlines_built;
 bool blur_image = false;
 int gauss = (int)blur_image;
 float sigma = 1.;
+int STEP_MAX = 1000; // Upper limit of steps to take for tracing each streamline.
+double STEP = 0.001; // You should experiment to find the optimal step size.
+
+double color_jitter = 0.1;
+float jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
 
 GLUI_RadioGroup* debug_group, *smoothing_group;
 
@@ -138,7 +141,7 @@ void build_streamline(double x, double y);
 
 void findMinMaxField(icVector3& min, icVector3& max);
 icVector3 quadToTexture(double x, double y, double z);
-icVector3 findPixelColor(icVector3 v);
+icVector3 findPixelColor(icVector3 v, float jitter);
 
 // For displaying image
 void initImage();
@@ -163,6 +166,7 @@ UI Functions
 void renderStep(int);
 void checkForSmoothing(int);
 void sigmaVal(int);
+void brushWidth(int);
 
 /******************************************************************************
 Main program.
@@ -214,7 +218,8 @@ int main(int argc, char* argv[])
 
 	glui->add_separator();
 
-
+	GLUI_EditText* brush_width_editor =
+		glui->add_edittext("Brush size: ", GLUI_EDITTEXT_FLOAT, &brush_width, 1, brushWidth);
 
 	glui->add_column(true);
 
@@ -1230,7 +1235,7 @@ void display_polyhedron(Polyhedron* poly)
 		{
 			icVector3 point = points[k];
 			if (point != prevpoint) {
-				icVector3 color = findPixelColor(icVector3(point.x, point.y, point.z));
+				icVector3 color = findPixelColor(icVector3(point.x, point.y, point.z), jitter);
 				//std::cout << "drawing point " << k << " at {" << point.x << ", " << point.y << ", " << point.z << "}..." << std::endl;
 				drawDot(point.x, point.y, point.z, brush_width, color.x, color.y, color.z, opacity);
 			}
@@ -1743,7 +1748,7 @@ icVector3 quadToTexture(double x, double y, double z) {
 }
 
 // Find the color of a pixel given a coordinate on the mesh
-icVector3 findPixelColor(icVector3 v) {
+icVector3 findPixelColor(icVector3 v, float jitter) {
 	double r = 0., g = 0., b = 0.;
 	// v is a vertex in the mesh space
 	// convert to pixel space
@@ -1761,7 +1766,6 @@ icVector3 findPixelColor(icVector3 v) {
 	g /= 255;
 	b /= 255;
 
-	float jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
 	/*float red_jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
 	float green_jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
 	float blue_jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
@@ -2569,4 +2573,25 @@ void sigmaVal(int sig) {
 	
 	initGauss(sig);
 	glutPostRedisplay();
+}
+
+void brushWidth(int b) {
+	display_mode = 4;
+	if (!streamlines_built) findMinMaxField(min, max);
+	std::cout << "\nChanging brush stroke size to " << brush_width << std::endl;
+
+	if (blur_image) {
+		initGauss(sigma);
+	}
+	sobelFilter(fname);
+
+	if (!streamlines_built) {
+		// make dots along x and y axes
+		draw_lines(&points, &streamlines);
+	}
+	streamlines_built = true;
+
+	glutPostRedisplay();
+
+	std::cout << "done :)" << std::endl;
 }
