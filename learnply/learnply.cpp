@@ -97,6 +97,8 @@ double opacity = 0.95;
 int* vis_version = 0;
 bool streamlines_built;
 
+GLUI_RadioGroup* group1;
+
 /******************************************************************************
 Forward declaration of functions
 ******************************************************************************/
@@ -203,8 +205,7 @@ int main(int argc, char* argv[])
 		glui->add_edittext("Filepath:", GLUI_EDITTEXT_TEXT, &fname);
 
 	GLUI_Panel* obj_panel = glui->add_panel("Object Type");
-	GLUI_RadioGroup* group1 =
-		glui->add_radiogroup_to_panel(obj_panel, vis_version, 0, renderStep);
+	group1 = glui->add_radiogroup_to_panel(obj_panel, vis_version, 0, renderStep);
 	glui->add_radiobutton_to_group(group1, "OG Image");
 	glui->add_radiobutton_to_group(group1, "Sobel");
 
@@ -1082,6 +1083,17 @@ void display_polyhedron(Polyhedron* poly)
 		glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
 		glMaterialf(GL_FRONT, GL_SHININESS, 50.0);
 
+		//for (int i = 0; i < poly->nquads; i++) {
+		//	Quad* temp_q = poly->qlist[i];
+		//	glBegin(GL_POLYGON);
+		//	for (int j = 0; j < 4; j++) {
+		//		Vertex* temp_v = temp_q->verts[j];
+		//		glNormal3d(temp_v->normal.entry[0], temp_v->normal.entry[1], temp_v->normal.entry[2]);
+		//		glVertex3d(temp_v->x, temp_v->y, temp_v->z);
+		//	}
+		//	glEnd();
+		//}
+
 		for (int i = 0; i < poly->nquads; i++) {
 			Quad* temp_q = poly->qlist[i];
 			glBegin(GL_POLYGON);
@@ -1092,6 +1104,9 @@ void display_polyhedron(Polyhedron* poly)
 			}
 			glEnd();
 		}
+		initImage();
+		imageFilter(fname);
+		displayImage();
 	}
 	break;
 
@@ -2441,6 +2456,8 @@ void renderStep(int step) {
 	int i;
 	double sigma = 1.;
 
+	step = group1->get_int_val();
+
 	// clear out lines and points
 	lines.clear();
 	points.clear();
@@ -2507,4 +2524,5 @@ void renderStep(int step) {
 		glutPostRedisplay();
 		break;
 	}
+
 }
