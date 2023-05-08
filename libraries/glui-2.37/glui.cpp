@@ -113,8 +113,7 @@ static void finish_drawing(void)
 
 /************************************ GLUI_CB::operator()() ************/
 void GLUI_CB::operator()(GLUI_Control*ctrl) const
-{
-  if (idCB)  idCB(ctrl->user_id);
+{  if (idCB)  idCB(ctrl->user_id);
   if (objCB) objCB(ctrl);
 }
 

@@ -90,6 +90,7 @@ int main_window;
 float brush_width = 0.75;
 float* brush_width_p = &brush_width;
 double brightness = -0.2;
+int brightness_int = -20;
 
 int* vis_version = 0;
 bool streamlines_built;
@@ -114,7 +115,8 @@ int opacity_percentage = 100;
 double opacity = 1.0;
 
 GLUI_RadioGroup* debug_group, *smoothing_group, *styles_group;
-GLUI_Listbox* num_strokes_list, *opacity_list, *step_max_list, *step_list;
+GLUI_Listbox* num_strokes_list, * opacity_list, * step_max_list, * step_list,
+			* brightness_list;
 
 /******************************************************************************
 Forward declaration of functions
@@ -184,6 +186,7 @@ void changeOpacity(int);
 void changeStepMax(int);
 void changeStep(int);
 void renderStyles(int);
+void changeBrightness(int);
 
 /******************************************************************************
 Main program.
@@ -254,6 +257,13 @@ int main(int argc, char* argv[])
 	opacity_list->add_item(25, "25%");
 	opacity_list->add_item(0, "0%");
 
+	brightness_list =
+		glui->add_listbox("Brightness: ", &brightness_int, 1, changeBrightness);
+	brightness_list->add_item(20, "Normal");
+	brightness_list->add_item(50, "Dark");
+	brightness_list->add_item(0, "Bright");
+	brightness_list->add_item(-20, "Super Bright");
+
 	step_max_list =
 		glui->add_listbox("STEP_MAX: ", &STEP_MAX, 1000, changeStepMax);
 
@@ -288,6 +298,7 @@ int main(int argc, char* argv[])
 
 	GLUI_Panel* styles_panel = glui->add_panel("Styles");
 	styles_group = glui->add_radiogroup_to_panel(styles_panel, NULL, 0, renderStyles);
+	glui->add_radiobutton_to_group(styles_group, "Default");
 	glui->add_radiobutton_to_group(styles_group, "Pointillistic");
 	glui->add_radiobutton_to_group(styles_group, "Impressionistic");
 	glui->add_radiobutton_to_group(styles_group, "WaterColor");
@@ -2757,9 +2768,14 @@ void renderStyles(int style) {
 	style = styles_group->get_int_val();
 
 	switch (style) {
-	case 0: // Pointillistic
+	case 0:
 	{
-		std::cout << "Pointillistic" << std::endl;
+
+	}
+	break;
+	case 1: // Pointillistic
+	{
+		std::cout << "\nPointillistic" << std::endl;
 		brush_width = 0.25;
 		num_strokes = 0.5;
 		opacity = 0.5;
@@ -2768,11 +2784,11 @@ void renderStyles(int style) {
 
 		display_mode = 4;
 		if (!streamlines_built) findMinMaxField(min, max);
-		std::cout << "\nChanging brush size to " << brush_width << std::endl;
-		std::cout << "\nChanging num strokes to " << num_strokes << std::endl;
-		std::cout << "\nChanging opacity to " << opacity << std::endl;
-		std::cout << "\nChanging STEP_MAX to " << STEP_MAX << std::endl;
-		std::cout << "\nChanging STEP to " << STEP << std::endl;
+		std::cout << "Changing brush size to " << brush_width << std::endl;
+		std::cout << "Changing num strokes to " << num_strokes << std::endl;
+		std::cout << "Changing opacity to " << opacity << std::endl;
+		std::cout << "Changing STEP_MAX to " << STEP_MAX << std::endl;
+		std::cout << "Changing STEP to " << STEP << std::endl;
 
 		if (blur_image) {
 			initGauss(sigma);
@@ -2789,9 +2805,9 @@ void renderStyles(int style) {
 		glutPostRedisplay();
 	}
 	break;
-	case 1: // Impressionistic
+	case 2: // Impressionistic
 	{
-		std::cout << "Impressionistic" << std::endl;
+		std::cout << "\nImpressionistic" << std::endl;
 		brush_width = 0.25;
 		num_strokes = 0.5;
 		opacity = 0.25;
@@ -2800,11 +2816,11 @@ void renderStyles(int style) {
 
 		display_mode = 4;
 		if (!streamlines_built) findMinMaxField(min, max);
-		std::cout << "\nChanging brush size to " << brush_width << std::endl;
-		std::cout << "\nChanging num strokes to " << num_strokes << std::endl;
-		std::cout << "\nChanging opacity to " << opacity << std::endl;
-		std::cout << "\nChanging STEP_MAX to " << STEP_MAX << std::endl;
-		std::cout << "\nChanging STEP to " << STEP << std::endl;
+		std::cout << "Changing brush size to " << brush_width << std::endl;
+		std::cout << "Changing num strokes to " << num_strokes << std::endl;
+		std::cout << "Changing opacity to " << opacity << std::endl;
+		std::cout << "Changing STEP_MAX to " << STEP_MAX << std::endl;
+		std::cout << "Changing STEP to " << STEP << std::endl;
 
 		if (blur_image) {
 			initGauss(sigma);
@@ -2821,22 +2837,24 @@ void renderStyles(int style) {
 		glutPostRedisplay();
 	}
 	break;
-	case 2: // Watercolor
+	case 3: // Watercolor
 	{
-		std::cout << "Watercolor" << std::endl;
+		std::cout << "\nWatercolor" << std::endl;
 		brush_width = 1.25;
 		num_strokes = 2.;
 		opacity = 0.25;
 		STEP_MAX = 500;
 		STEP = 0.5;
+		brightness = 0.;
 
 		display_mode = 4;
 		if (!streamlines_built) findMinMaxField(min, max);
-		std::cout << "\nChanging brush size to " << brush_width << std::endl;
-		std::cout << "\nChanging num strokes to " << num_strokes << std::endl;
-		std::cout << "\nChanging opacity to " << opacity << std::endl;
-		std::cout << "\nChanging STEP_MAX to " << STEP_MAX << std::endl;
-		std::cout << "\nChanging STEP to " << STEP << std::endl;
+		std::cout << "Changing brush size to " << brush_width << std::endl;
+		std::cout << "Changing num strokes to " << num_strokes << std::endl;
+		std::cout << "Changing opacity to " << opacity << std::endl;
+		std::cout << "Changing STEP_MAX to " << STEP_MAX << std::endl;
+		std::cout << "Changing STEP to " << STEP << std::endl;
+		std::cout << "Changing brightness to " << brightness << std::endl;
 
 		if (blur_image) {
 			initGauss(sigma);
@@ -2854,4 +2872,28 @@ void renderStyles(int style) {
 	}
 	break;
 	}
+}
+
+void changeBrightness(int br) {
+	br = brightness_list->get_int_val();
+	brightness = -br / 100.;
+	display_mode = 4;
+	if (!streamlines_built) findMinMaxField(min, max);
+	std::cout << "\nChanging brightness to " << brightness << std::endl;
+
+	if (blur_image) {
+		initGauss(sigma);
+	}
+	sobelFilter(fname);
+
+	if (!streamlines_built) {
+		// clear out lines and points
+		lines.clear();
+		points.clear();
+		// make dots along x and y axes
+		draw_lines(&points, &streamlines);
+	}
+	streamlines_built = true;
+
+	glutPostRedisplay();
 }
