@@ -68,7 +68,7 @@ unsigned char* pixels;
 
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
-std::string fname = "../data/image/tulips.ppm";
+std::string fname = "../data/image/kylo.ppm";
 int alpha = (255 * 0.2);
 ppm img(fname);
 float edge_vectors[NPN][NPN][2]; // For storing the edge field
