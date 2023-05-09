@@ -1,4 +1,4 @@
-# Generating and Manipulating Vector Fields on 2D Surfaces
+# Generating and Manipulating Painterly Renderings of Images
 
 Current progress on Honors undergraduate thesis project. Aiming to create an application that allows a "painterly rendering" of an image or video as input.
 
