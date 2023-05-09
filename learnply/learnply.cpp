@@ -121,6 +121,7 @@ double num_strokes = stroke_percentage * 0.01;
 int opacity_percentage = 100;
 double opacity = 1.0;
 
+GLUI_EditText* filepath;
 GLUI_RadioGroup* debug_group, *smoothing_group, *styles_group;
 GLUI_Listbox* num_strokes_list, * opacity_list, * step_max_list, * step_list,
 			* brightness_list;
@@ -187,6 +188,7 @@ void print_pixel_color_neighbors(int i, int j);
 /******************************************************************************
 UI Functions
 ******************************************************************************/
+void updateFilepath(int);
 void renderStep(int);
 void checkForSmoothing(int);
 void sigmaVal(int);
@@ -238,6 +240,9 @@ int main(int argc, char* argv[])
 	/* Do some GLUI stuff */
 	GLUI* glui = GLUI_Master.create_glui("Painterly Rendering User Interface", 0, win_width + 50, 50);
 	//glui->add_statictext("Simple GLUI Test :DDDDDDDDDDDDDDDDDDDDDDDDDDDD");
+
+	filepath =
+		glui->add_edittext("Filepath: ", GLUI_EDITTEXT_STRING , &fname, 1, updateFilepath);
 
 	GLUI_Panel* debug_panel = glui->add_panel("Debug");
 	debug_group = glui->add_radiogroup_to_panel(debug_panel, vis_version, 0, renderStep);
@@ -2635,6 +2640,14 @@ void print_pixel_color_neighbors(int i, int j) {
 		<< (float)(img.b[(NPN - i) * NPN + j + 1]) << "}" << std::endl;
 }
 
+
+void updateFilepath(int st) {
+	fname = filepath->get_text();
+
+	streamlines_built = false;
+	display_mode = 1;
+	glutPostRedisplay();
+}
 
 // Figures out which step to be rendered based on radio button input from
 // the user interface
