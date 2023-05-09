@@ -90,12 +90,14 @@ Global Variables to be messed with for UI
 ******************************************************************************/
 int main_window;
 float brush_width = 0.75;
+int brush_width_half = (brush_width / 2) * 100;
 float* brush_width_p = &brush_width;
 double brightness = -0.2;
 int brightness_int = -20;
 
 int* vis_version = 0;
 bool streamlines_built;
+bool drawn;
 bool blur_image = false;
 int gauss = (int)blur_image;
 float sigma = 1.;
@@ -109,6 +111,9 @@ int step_int = 10; // divide by 1000 to get 0.01
 
 double color_jitter = 0.1;
 float jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
+
+double brush_w_jitter = 0.5;
+double br_w = 0.;
 
 int stroke_percentage = 100; // 50%, 100%, 200%, etc.
 double num_strokes = stroke_percentage * 0.01; 
@@ -1308,16 +1313,21 @@ void display_polyhedron(Polyhedron* poly)
 		icVector3 prevpoint = icVector3(0., 0., 0.);
 		for (int k = 0; k < points.size(); k++)
 		{
+			
+			if (!drawn) {
+				br_w = (static_cast<double>(-brush_width_half) + rand() % (brush_width_half + brush_width_half + 1)) / 100;
+			}
 			icVector3 point = points[k];
 			if (point != prevpoint) {
 				icVector3 color = findPixelColor(icVector3(point.x, point.y, point.z), jitter);
 				//don't draw them yet... instead push them to a vector to be sorted
-				drawDot(point.x, point.y, point.z, brush_width, color.x, color.y, color.z, opacity);
+			
+				drawDot(point.x, point.y, point.z, brush_width + br_w, color.x, color.y, color.z, opacity);
 				//unsorted_points.push_back(Vertex(point.x, point.y, point.z, color.x, color.y, color.z));
 			}
 			prevpoint = point;
 		}
-
+		//drawn = true;
 		// sort points
 		//sortColors();
 		//quicksort(unsorted_points, 0, unsorted_points.size() - 1);
@@ -2639,6 +2649,7 @@ void renderStep(int step) {
 		points.clear();
 	}
 
+	drawn = false;
 
 	initImage();	// Initialize image out of input file
 	initSobel();
@@ -2735,6 +2746,7 @@ void brushWidth(int b) {
 	display_mode = 4;
 	if (!streamlines_built) findMinMaxField(min, max);
 	std::cout << "\nChanging brush stroke size to " << brush_width << std::endl;
+	drawn = false;
 
 	if (blur_image) {
 		initGauss(sigma);
@@ -2756,6 +2768,7 @@ void brushWidth(int b) {
 void changeBrushStrokeNum(int bsp) {
 	stroke_percentage = num_strokes_list->get_int_val();
 	num_strokes = stroke_percentage * 0.01;
+	drawn = false;
 
 	display_mode = 4;
 	if (!streamlines_built) findMinMaxField(min, max);
@@ -2779,6 +2792,7 @@ void changeBrushStrokeNum(int bsp) {
 void changeOpacity(int op) {
 	opacity_percentage = opacity_list->get_int_val();
 	opacity = opacity_percentage * 0.01;
+	drawn = false;
 
 	display_mode = 4;
 	if (!streamlines_built) findMinMaxField(min, max);
@@ -2803,6 +2817,7 @@ void changeOpacity(int op) {
 
 void changeStepMax(int sm) {
 	STEP_MAX = step_max_list->get_int_val();
+	drawn = false;
 
 	display_mode = 4;
 	if (!streamlines_built) findMinMaxField(min, max);
@@ -2828,6 +2843,7 @@ void changeStepMax(int sm) {
 void changeStep(int) {
 	step_int = step_list->get_int_val();
 	STEP = step_int / static_cast<double>(1000);
+	drawn = false;
 
 	display_mode = 4;
 	if (!streamlines_built) findMinMaxField(min, max);
@@ -2855,6 +2871,7 @@ void renderStyles(int style) {
 	// clear out lines and points
 	lines.clear();
 	points.clear();
+	drawn = false;
 
 	switch (style) {
 	case 0:
