@@ -42,10 +42,10 @@ const double radius_factor = 0.9;
 
 /*
 Use keys 1 to 0 to switch among different display modes.
-Each display mode can be designed to show one type 
+Each display mode can be designed to show one type
 visualization result.
 
-Predefined ones: 
+Predefined ones:
 display mode 1: solid rendering
 display mode 2: show wireframes
 display mode 3: render each quad with colors of vertices
@@ -70,7 +70,7 @@ unsigned char* pixels;
 
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
-std::string fname = "../data/image/tulips.ppm";
+std::string fname = "../data/image/hawaii.ppm";
 int alpha = (255 * 0.2);
 ppm img(fname);
 float edge_vectors[NPN][NPN][2]; // For storing the edge field
@@ -102,13 +102,14 @@ bool blur_image = false;
 int gauss = (int)blur_image;
 float sigma = 1.;
 int STEP_MAX = 1000; // Upper limit of steps to take for tracing each streamline.
-					// The smaller this is, the shorter the streamline...?
+// The smaller this is, the shorter the streamline...?
 double STEP = 0.01; // You should experiment to find the optimal step size.
-					// The higher this is, the blockier/blurrier the painting is going to be
-					// or the further apart the dots are going to be
+// The higher this is, the blockier/blurrier the painting is going to be
+// or the further apart the dots are going to be
 
 int step_int = 10; // divide by 1000 to get 0.01
 
+int color_jitter_int = 1.; // color_jitter * 10
 double color_jitter = 0.1;
 float jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
 
@@ -116,19 +117,21 @@ double brush_w_jitter = 0.5;
 double br_w = 0.;
 
 int stroke_percentage = 100; // 50%, 100%, 200%, etc.
-double num_strokes = stroke_percentage * 0.01; 
+double num_strokes = stroke_percentage * 0.01;
 
 int opacity_percentage = 100;
 double opacity = 1.0;
 
 GLUI_EditText* filepath;
-GLUI_RadioGroup* debug_group, *smoothing_group, *styles_group;
+GLUI_RadioGroup* debug_group, * smoothing_group, * styles_group;
 GLUI_Listbox* num_strokes_list, * opacity_list, * step_max_list, * step_list,
-			* brightness_list;
+* brightness_list, * jittering_list;
 
 /******************************************************************************
 Forward declaration of functions
 ******************************************************************************/
+
+int main(int argc, char* argv[]);
 
 void init(void);
 void initIBFV();
@@ -199,6 +202,7 @@ void changeStepMax(int);
 void changeStep(int);
 void renderStyles(int);
 void changeBrightness(int);
+void updateJitter(int);
 
 /******************************************************************************
 Main program.
@@ -210,7 +214,7 @@ int main(int argc, char* argv[])
 	FILE* this_file = fopen("../data/vector_data/v9.ply", "r");
 	poly = new Polyhedron(this_file);
 	fclose(this_file);
-	
+
 	/*initialize the mesh*/
 	poly->initialize(); // initialize the mesh
 	poly->write_info();
@@ -219,11 +223,11 @@ int main(int argc, char* argv[])
 	/*init glut and create window*/
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-	glutInitWindowPosition(20,50);
+	glutInitWindowPosition(20, 50);
 	glutInitWindowSize(win_width, win_height);
 	main_window = glutCreateWindow("Painterly Rendering");
 
-	
+
 	/*initialize openGL*/
 	init();
 
@@ -242,7 +246,7 @@ int main(int argc, char* argv[])
 	//glui->add_statictext("Simple GLUI Test :DDDDDDDDDDDDDDDDDDDDDDDDDDDD");
 
 	filepath =
-		glui->add_edittext("Filepath: ", GLUI_EDITTEXT_STRING , &fname, 1, updateFilepath);
+		glui->add_edittext("Filepath: ", GLUI_EDITTEXT_STRING, &fname, 1, updateFilepath);
 
 	GLUI_Panel* debug_panel = glui->add_panel("Debug");
 	debug_group = glui->add_radiogroup_to_panel(debug_panel, vis_version, 0, renderStep);
@@ -251,14 +255,12 @@ int main(int argc, char* argv[])
 	glui->add_radiobutton_to_group(debug_group, "Streamlines");
 	glui->add_radiobutton_to_group(debug_group, "Brush Strokes");
 
-	glui->add_column(true);
-
 	GLUI_EditText* brush_width_editor =
 		glui->add_edittext("Brush size: ", GLUI_EDITTEXT_FLOAT, &brush_width, 1, brushWidth);
 
 	num_strokes_list =
 		glui->add_listbox("Number of Brush Strokes: ", &stroke_percentage, 100, changeBrushStrokeNum);
-	
+
 	num_strokes_list->add_item(100, "Normal");
 	num_strokes_list->add_item(200, "Light");
 	num_strokes_list->add_item(50, "Heavy");
@@ -274,19 +276,24 @@ int main(int argc, char* argv[])
 
 	brightness_list =
 		glui->add_listbox("Brightness: ", &brightness_int, 1, changeBrightness);
-	brightness_list->add_item(20, "Normal");
+	brightness_list->add_item(20, "Normal (-0.2)");
 	brightness_list->add_item(50, "Dark");
-	brightness_list->add_item(0, "Bright");
-	brightness_list->add_item(-20, "Super Bright");
+	brightness_list->add_item(0, "Bright (0.)");
+	brightness_list->add_item(-20, "Super Bright (0.2)");
+
+	jittering_list =
+		glui->add_listbox("Color Jittering: ", &color_jitter_int, NULL, updateJitter);
+
+	jittering_list->add_item(1, "0.1");
+	jittering_list->add_item(5, "0.5");
+	jittering_list->add_item(8, "0.8");
 
 	step_max_list =
 		glui->add_listbox("STEP_MAX: ", &STEP_MAX, 1000, changeStepMax);
 
 	step_max_list->add_item(1000, "1000");
-	step_max_list->add_item(5000, "5000");
-	step_max_list->add_item(75000, "75000");
-	step_max_list->add_item(750, "750");
 	step_max_list->add_item(500, "500");
+	step_max_list->add_item(250, "250");
 
 	step_list =
 		glui->add_listbox("STEP: ", &step_int, 10, changeStep);
@@ -298,18 +305,14 @@ int main(int argc, char* argv[])
 	step_list->add_item(50, "0.05");
 	step_list->add_item(5, "0.005");
 
-	//GLUI_Panel* smoothing_panel = glui->add_panel("Smoothing");
-	//glui->add_checkbox_to_panel(smoothing_panel, "Smoothing", &gauss, 0, checkForSmoothing);
-	//smoothing_group = glui->add_radiogroup_to_panel(smoothing_panel, NULL, 0, sigmaVal);
-	//glui->add_radiobutton_to_group(smoothing_group, "0.5");
-	//glui->add_radiobutton_to_group(smoothing_group, "1.");
-	//glui->add_radiobutton_to_group(smoothing_group, "3.");
-	//glui->add_radiobutton_to_group(smoothing_group, "5.");
-
-	glui->add_button("Apply", 0, (GLUI_Update_CB)glutPostRedisplay);
-	glui->add_button("Quit", 0, (GLUI_Update_CB)exit);
-
-	glui->add_column(true);
+	GLUI_Panel* smoothing_panel = glui->add_panel("Smoothing");
+	glui->add_checkbox_to_panel(smoothing_panel, "Smoothing", &gauss, 0, checkForSmoothing);
+	smoothing_group = glui->add_radiogroup_to_panel(smoothing_panel, NULL, 0, sigmaVal);
+	glui->add_radiobutton_to_group(smoothing_group, "0.");
+	glui->add_radiobutton_to_group(smoothing_group, "0.5");
+	glui->add_radiobutton_to_group(smoothing_group, "1.");
+	glui->add_radiobutton_to_group(smoothing_group, "3.");
+	glui->add_radiobutton_to_group(smoothing_group, "5.");
 
 	GLUI_Panel* styles_panel = glui->add_panel("Styles");
 	styles_group = glui->add_radiogroup_to_panel(styles_panel, NULL, 0, renderStyles);
@@ -317,9 +320,10 @@ int main(int argc, char* argv[])
 	glui->add_radiobutton_to_group(styles_group, "Pointillistic");
 	glui->add_radiobutton_to_group(styles_group, "Impressionistic");
 	glui->add_radiobutton_to_group(styles_group, "WaterColor");
+	glui->add_radiobutton_to_group(styles_group, "Expressionalistic");
 
-	// Eventually we are going to change this radio button group to be
-	// something like default styles.
+	glui->add_button("Apply", 0, (GLUI_Update_CB)glutPostRedisplay);
+	glui->add_button("Quit", 0, (GLUI_Update_CB)exit);
 
 	glui->set_main_gfx_window(main_window);
 	GLUI_Master.set_glutIdleFunc(myGlutIdle);
@@ -327,10 +331,10 @@ int main(int argc, char* argv[])
 	GLUI_Master.set_glutMouseFunc(mouse);
 	GLUI_Master.set_glutReshapeFunc(reshape);
 
-	
+
 	/*event processing loop*/
 	glutMainLoop();
-	
+
 	/*clear memory before exit*/
 	poly->finalize();	// finalize everything
 	free(pixels);
@@ -432,10 +436,10 @@ void init(void) {
 	glDisable(GL_DITHER);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
-	
+
 	//set pixel storage modes
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
-	
+
 	glEnable(GL_NORMALIZE);
 	if (poly->orientation == 0)
 		glFrontFace(GL_CW);
@@ -546,7 +550,7 @@ void display_quads(GLenum mode, Polyhedron* this_poly)
 			glLoadName(i + 1);
 
 		Quad* temp_q = this_poly->qlist[i];
-		
+
 		glBegin(GL_POLYGON);
 		for (j = 0; j < 4; j++) {
 			Vertex* temp_v = temp_q->verts[j];
@@ -616,7 +620,7 @@ void display_selected_vertex(Polyhedron* this_poly)
 	}
 
 	Vertex* temp_v = this_poly->vlist[this_poly->selected_vertex];
-	drawDot(temp_v->x, temp_v->y, temp_v->z, 0.15, 1.0, 0.0,0.0);
+	drawDot(temp_v->x, temp_v->y, temp_v->z, 0.15, 1.0, 0.0, 0.0);
 
 	CHECK_GL_ERROR();
 }
@@ -690,7 +694,7 @@ void keyboard(unsigned char key, int x, int y) {
 		if (blur_image) {
 			initGauss(sigma);
 		}
-		
+
 		sobelFilter(fname);
 
 		//for patsvec
@@ -729,7 +733,7 @@ void keyboard(unsigned char key, int x, int y) {
 			//print_test_points();
 			streamlines_built = true;
 		}
-		
+
 		glutPostRedisplay();
 		break;
 
@@ -849,7 +853,7 @@ void mouse(int button, int state, int x, int y) {
 	int key = glutGetModifiers();
 
 	if (button == GLUT_LEFT_BUTTON || button == GLUT_RIGHT_BUTTON) {
-		
+
 		if (state == GLUT_DOWN) {
 			float xsize = (float)win_width;
 			float ysize = (float)win_height;
@@ -953,7 +957,7 @@ void mouse(int button, int state, int x, int y) {
 				printf("Selected vert id = %d\n", poly->selected_vertex);
 
 				if (poly->selected_vertex >= 0) {
-					Vertex * vtemp = poly->vlist[poly->selected_vertex];
+					Vertex* vtemp = poly->vlist[poly->selected_vertex];
 					init_points.push_back(icVector3(vtemp->x, vtemp->y, 0));
 				}
 
@@ -1054,7 +1058,7 @@ void displayIBFV()
 
 			tx = tx / win_width;
 			ty = ty / win_height;
-			
+
 			icVector2 dp = icVector2(vtemp->vx, vtemp->vy);
 			normalize(dp);
 			dp *= dmax;
@@ -1285,7 +1289,7 @@ void display_polyhedron(Polyhedron* poly)
 	{
 		glEnable(GL_LIGHTING);
 		glEnable(GL_LIGHT0);
-		glEnable(GL_LIGHT1);	
+		glEnable(GL_LIGHT1);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glEnable(GL_BLEND);
 
@@ -1318,16 +1322,17 @@ void display_polyhedron(Polyhedron* poly)
 		icVector3 prevpoint = icVector3(0., 0., 0.);
 		for (int k = 0; k < points.size(); k++)
 		{
-			
-			if (!drawn) {
-				br_w = (static_cast<double>(-brush_width_half) + rand() % (brush_width_half + brush_width_half + 1)) / 100;
-			}
+
+			//if (!drawn) {
+			//	br_w = (static_cast<double>(-brush_width_half) + rand() % (brush_width_half + brush_width_half + 1)) / 100;
+			//}
 			icVector3 point = points[k];
 			if (point != prevpoint) {
 				icVector3 color = findPixelColor(icVector3(point.x, point.y, point.z), jitter);
 				//don't draw them yet... instead push them to a vector to be sorted
-			
-				drawDot(point.x, point.y, point.z, brush_width + br_w, color.x, color.y, color.z, opacity);
+
+				//drawDot(point.x, point.y, point.z, brush_width + br_w, color.x, color.y, color.z, opacity);
+				drawDot(point.x, point.y, point.z, brush_width, color.x, color.y, color.z, opacity);
 				//unsorted_points.push_back(Vertex(point.x, point.y, point.z, color.x, color.y, color.z));
 			}
 			prevpoint = point;
@@ -1351,7 +1356,7 @@ void display_polyhedron(Polyhedron* poly)
 		for (int k = 0; k < sources.size(); k++)
 		{
 			icVector3 point = sources[k];
-			drawDot(point.x, point.y, point.z,  0.15, 1, 0, 0);
+			drawDot(point.x, point.y, point.z, 0.15, 1, 0, 0);
 		}
 		for (int k = 0; k < saddles.size(); k++)
 		{
@@ -1490,7 +1495,7 @@ void find_singularities()
 		// then it corresponds to a singularity inside the quad.
 		double s, t;
 
-		if ( s1 > 0 && s1 < 1 && t1 > 0 && t1 < 1 ) {
+		if (s1 > 0 && s1 < 1 && t1 > 0 && t1 < 1) {
 			// (s1, t1)
 			s = s1;
 			t = t1;
@@ -1706,7 +1711,7 @@ Quad* streamline_step(icVector2& cpos, icVector2& npos, Quad* cquad, bool forwar
 		dprod_x1 = dot(vect, cross_x1 - cpos);
 		dprod_x2 = dot(vect, cross_x2 - cpos);
 		// check y1
-		if (cross_y1.x >= x1 && cross_y1.x <= x2 && dprod_y1 > 0 ) {
+		if (cross_y1.x >= x1 && cross_y1.x <= x2 && dprod_y1 > 0) {
 			npos = cross_y1;
 			cross_edge = poly->find_edge(v11, v21);
 			nquad = poly->other_quad(cross_edge, cquad);
@@ -1757,7 +1762,7 @@ void build_streamline(double x, double y)
 			LineSegment linear_seg = LineSegment(cpos.x, cpos.y, 0, npos.x, npos.y, 0);
 			pline.push_back(linear_seg);
 
-			points.push_back(icVector3(cpos.x, cpos.y, 0));	
+			points.push_back(icVector3(cpos.x, cpos.y, 0));
 
 			cpos = npos;
 			step_counter++;
@@ -1832,7 +1837,7 @@ icVector3 quadToTexture(double x, double y, double z) {
 		((rmax * max.y) - (rmin * min.y))) / (max.y - min.y);*/
 	double r = ((x * (rmax - rmin)) +
 		((rmin * max.y) - (rmax * min.y))) / (max.y - min.y);
-	
+
 	// Find c,r vector in texture space
 	int ir = (int)r;
 	int ic = (int)c;
@@ -1840,7 +1845,7 @@ icVector3 quadToTexture(double x, double y, double z) {
 	double vc = 0, vr = 0;
 
 	// Make sure that the vector is not out of bounds
-	if (ic > 0 || ir > 0 || ic < NPN-1 || ir < NPN-1) {
+	if (ic > 0 || ir > 0 || ic < NPN - 1 || ir < NPN - 1) {
 		vc = edge_vectors[ic][ir][1];
 		vr = edge_vectors[ic][ir][0];
 	}
@@ -1857,7 +1862,7 @@ icVector3 findPixelColor(icVector3 v, float jitter) {
 		((cmin * max.x) - (cmax * min.x))) / (max.x - min.x);
 	int row = ((v.x * (rmax - rmin)) +
 		((rmin * max.y) - (rmax * min.y))) / (max.y - min.y);
-	
+
 	// find rgb values at a given pixel
 	r = image_colors[col][row][0];
 	g = image_colors[col][row][1];
@@ -1962,7 +1967,7 @@ void initImage()
 	int phase[NPN][NPN];
 	int i, j, k;
 
-	
+
 	for (i = 0; i < 256; i++) lut[i] = i < 127 ? 0 : 255;
 	for (i = 0; i < NPN; i++)
 		//for (j = 0; j < npn; j++) phase[i][j] = rand() % 256;
@@ -2002,7 +2007,7 @@ void imageFilter(const std::string& fname) {
 	int i, j;
 	for (i = 0; i < NPN; i++) {		// rows
 		for (j = 0; j < NPN; j++) { // columns
-			
+
 			image_colors[i][j][0] = img.r[(NPN - i - 1) * NPN + j];
 			image_colors[i][j][1] = img.g[(NPN - i - 1) * NPN + j];
 			image_colors[i][j][2] = img.b[(NPN - i - 1) * NPN + j];
@@ -2267,7 +2272,7 @@ void sobelFilter(const std::string& fname) {
 	}
 
 	// Sobel filter
-	for (i = 1; i < NPN-1; i++) {		// row
+	for (i = 1; i < NPN - 1; i++) {		// row
 		for (j = 1; j < NPN - 1; j++) {	// column
 			// Initial magnitude for r,g,b (0,1,2) in the x and y directions
 			float magx = 0.0;
@@ -2285,19 +2290,19 @@ void sobelFilter(const std::string& fname) {
 			// Trying the messier version
 			// xdir	
 			// Top row
-			if (i > 0 && j > 0) magx += intensity[i-1][j-1][0] * kernelx[0][0];
-			if (j > 0) magx += intensity[i][j-1][0] * kernelx[1][0];
-			if (i < NPN-1 && j > 0) magx += intensity[i+1][j-1][0] * kernelx[2][0];
+			if (i > 0 && j > 0) magx += intensity[i - 1][j - 1][0] * kernelx[0][0];
+			if (j > 0) magx += intensity[i][j - 1][0] * kernelx[1][0];
+			if (i < NPN - 1 && j > 0) magx += intensity[i + 1][j - 1][0] * kernelx[2][0];
 
 			// Middle row
 			if (i > 0) magx += intensity[i - 1][j][0] * kernelx[0][1];
 			magx += intensity[i][j][0] * kernelx[1][1];
-			if (i < NPN-1) magx += intensity[i+1][j][0] * kernelx[2][1];
+			if (i < NPN - 1) magx += intensity[i + 1][j][0] * kernelx[2][1];
 
 			// Bottom row
-			if (i >0 && j < NPN-1)magx += intensity[i-1][j+1][0] * kernelx[0][2];
-			if (j < NPN-1) magx += intensity[i][j+1][0] * kernelx[1][2];
-			if (i < NPN-1 && j < NPN-1) magx += intensity[i+1][j+1][0] * kernelx[2][2];
+			if (i > 0 && j < NPN - 1)magx += intensity[i - 1][j + 1][0] * kernelx[0][2];
+			if (j < NPN - 1) magx += intensity[i][j + 1][0] * kernelx[1][2];
+			if (i < NPN - 1 && j < NPN - 1) magx += intensity[i + 1][j + 1][0] * kernelx[2][2];
 
 
 			//// ydir
@@ -2305,7 +2310,7 @@ void sobelFilter(const std::string& fname) {
 			if (i > 0 && j > 0) magy += intensity[i - 1][j - 1][0] * kernely[0][0];
 			if (j > 0) magy += intensity[i][j - 1][0] * kernely[1][0];
 			if (i < NPN - 1 && j > 0) magy += intensity[i + 1][j - 1][0] * kernely[2][0];
-			
+
 			// Middle row
 			if (i > 0) magy += intensity[i - 1][j][0] * kernely[0][1];
 			magy += intensity[i][j][0] * kernely[1][1];
@@ -2361,7 +2366,7 @@ void sobelFilter(const std::string& fname) {
 			{
 				std::cout << "find infinity" << std::endl;
 			}
-			
+
 
 		}
 	}
@@ -2384,7 +2389,7 @@ void sobelFilter(const std::string& fname) {
 // Calculates the transformation to apply to each pixel in the image
 float gaussFunction(double x, double y, double sigma) {
 	float exponent = -(x * x + y * y) / (2 * sigma * sigma);
-	return (1/(2 * PI * sigma * sigma) * pow(E, exponent));
+	return (1 / (2 * PI * sigma * sigma) * pow(E, exponent));
 }
 
 // Apply gaussian blur to image before edge detection
@@ -2409,12 +2414,12 @@ void gaussBlur(const std::string& fname, double sigma) {
 	for (int i = 0; i < kernel_size * kernel_size; i++) {
 		kernel[i] /= sum;
 		std::cout << kernel[i] << ",\t";
-		if ((i + 1) % kernel_size == 0 ) {
+		if ((i + 1) % kernel_size == 0) {
 			std::cout << std::endl;
 		}
 	}
 
-	
+
 
 	// gauss texture
 	GLubyte image[NPN][NPN][4];	// image before filter is applied - intensity
@@ -2487,9 +2492,9 @@ void initGauss(double std_dev)
 void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines)
 {
 	// make dots along x and y axes
-	for (double i = min.x; i <= max.x; i+= num_strokes)
+	for (double i = min.x; i <= max.x; i += num_strokes)
 	{
-		for (double j = min.y; j <= max.y; j+= num_strokes) {
+		for (double j = min.y; j <= max.y; j += num_strokes) {
 			//std::cout << "building streamline[" << i << "][" << j << "]..." << std::endl;
 			build_streamline(i, j);
 		}
@@ -2563,19 +2568,19 @@ void print_test_points() {
 	// top left
 	std::cout << "top left: (" << quadToTexture(-10, 10, 0).x << ", " << quadToTexture(-10, 10, 0).y << ")" << std::endl;
 	//std::cout << "top left: (" << patsvec[cmin][rmax][0] << ", " << patsvec[0][0][1] << ")" << std::endl;
-	
+
 	// top middle
 	std::cout << "top middle: (" << quadToTexture(0, 10, 0).x << ", " << quadToTexture(0, 10, 0).y << ")" << std::endl;
 	//std::cout << "top middle: (" << patsvec[128][0][0] << ", " << patsvec[128][0][1] << ")" << std::endl;
-	
+
 	// top right
 	std::cout << "top right: (" << quadToTexture(10, 10, 0).x << ", " << quadToTexture(10, 10, 0).y << ")" << std::endl;
 	//std::cout << "top right: (" << patsvec[255][0][0] << ", " << patsvec[255][0][1] << ")" << std::endl;
-	
+
 	// middle left
 	std::cout << "middle left: (" << quadToTexture(-10, 0, 0).x << ", " << quadToTexture(-10, 0, 0).y << ")" << std::endl;
 	//std::cout << "middle left: (" << patsvec[0][128][0] << ", " << patsvec[0][128][1] << ")" << std::endl;
-	
+
 	// middle
 	std::cout << "middle: (" << quadToTexture(0, 0, 0).x << ", " << quadToTexture(0, 0, 0).y << ")" << std::endl;
 	//std::cout << "middle: (" << patsvec[128][128][0] << ", " << patsvec[128][128][1] << ")" << std::endl;
@@ -2674,6 +2679,9 @@ void renderStep(int step) {
 		display_mode = 7;	// Display mode for original image
 		printf("Displaying original image.\n");
 		//initImage();	// Initialize image out of input file
+		if (blur_image) {
+			initGauss(sigma);
+		}
 		imageFilter(fname);
 		glutPostRedisplay();
 	}
@@ -2737,21 +2745,31 @@ void renderStep(int step) {
 }
 
 void checkForSmoothing(int gauss) {
-	display_mode = 7;	// Display mode for original image
-	printf("Displaying blurred image.\n");
+	//display_mode = 7;	// Display mode for original image
+	//printf("Displaying blurred image.\n");
 	blur_image = !blur_image;
 	//imageFilter(fname);
-	if (blur_image) { initGauss(sigma);}
-	else { initGauss(0.); }
+	//if (blur_image) { initGauss(sigma); }
+	//else { initGauss(0.); }
 	//gaussBlur(fname, 1.);
-	printf("Done.\n");
+	std::cout << "\nSmoothing Image " << blur_image << " by " << sigma << std::endl;
 	glutPostRedisplay();
 }
 
 void sigmaVal(int sig) {
 	sig = smoothing_group->get_int_val();
-	
+	blur_image = true;
+
 	initGauss(sig);
+	sobelFilter(fname);
+
+	// clear out lines and points
+	lines.clear();
+	points.clear();
+	// make dots along x and y axes
+	draw_lines(&points, &streamlines);
+	streamlines_built = true;
+
 	glutPostRedisplay();
 }
 
@@ -2843,10 +2861,10 @@ void changeStepMax(int sm) {
 
 	//if (!streamlines_built) {
 		// clear out lines and points
-		lines.clear();
-		points.clear();
-		// make dots along x and y axes
-		draw_lines(&points, &streamlines);
+	lines.clear();
+	points.clear();
+	// make dots along x and y axes
+	draw_lines(&points, &streamlines);
 	//}
 	streamlines_built = true;
 
@@ -2869,10 +2887,10 @@ void changeStep(int) {
 
 	//if (!streamlines_built) {
 		// clear out lines and points
-		lines.clear();
-		points.clear();
-		// make dots along x and y axes
-		draw_lines(&points, &streamlines);
+	lines.clear();
+	points.clear();
+	// make dots along x and y axes
+	draw_lines(&points, &streamlines);
 	//}
 	streamlines_built = true;
 
@@ -2989,6 +3007,39 @@ void renderStyles(int style) {
 		glutPostRedisplay();
 	}
 	break;
+	case 4: // Expressionalistic
+	{
+		std::cout << "\nExpressionalistic" << std::endl;
+		brush_width = 0.33;
+		num_strokes = 0.5;
+		opacity = 0.5;
+		STEP_MAX = 750;
+		STEP = 0.1;
+		brightness = -0.3;
+
+		display_mode = 4;
+		if (!streamlines_built) findMinMaxField(min, max);
+		std::cout << "Changing brush size to " << brush_width << std::endl;
+		std::cout << "Changing num strokes to " << num_strokes << std::endl;
+		std::cout << "Changing opacity to " << opacity << std::endl;
+		std::cout << "Changing STEP_MAX to " << STEP_MAX << std::endl;
+		std::cout << "Changing STEP to " << STEP << std::endl;
+		std::cout << "Changing brightness to " << brightness << std::endl;
+
+		if (blur_image) {
+			initGauss(sigma);
+		}
+		sobelFilter(fname);
+		// clear out lines and points
+		//lines.clear();
+		//points.clear();
+		// make dots along x and y axes
+		draw_lines(&points, &streamlines);
+		streamlines_built = true;
+
+		glutPostRedisplay();
+	}
+	break;
 	}
 }
 
@@ -3014,4 +3065,11 @@ void changeBrightness(int br) {
 	streamlines_built = true;
 
 	glutPostRedisplay();
+}
+
+void updateJitter(int j) {
+	j = jittering_list->get_int_val();
+	color_jitter = j / static_cast<double>(10);
+	std::cout << "\nChanging color jitter to " << color_jitter << std::endl;
+	jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
 }
