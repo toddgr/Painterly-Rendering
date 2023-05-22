@@ -41,7 +41,7 @@ void drawDot(double x, double y, double z, double radius = 0.15, float R = 0.0, 
 	glPushMatrix();
 	glTranslated(x, y, z);
 	glColor4f(R, G, B, A);
-	gluSphere(quadric, radius, 8, 8);
+	gluSphere(quadric, radius, 12, 12);
 	glPopMatrix();
 	gluDeleteQuadric(quadric);
 }

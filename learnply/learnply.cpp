@@ -70,7 +70,7 @@ unsigned char* pixels;
 
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
-std::string fname = "../data/image/hawaii.ppm";
+std::string fname = "../data/image/vader.ppm";
 int alpha = (255 * 0.2);
 ppm img(fname);
 float edge_vectors[NPN][NPN][2]; // For storing the edge field
@@ -89,7 +89,8 @@ int cmax = NPN - 1;
 Global Variables to be messed with for UI
 ******************************************************************************/
 int main_window;
-float brush_width = 0.75;
+float brush_width = 0.5;
+int brush_width_int = 50;
 int brush_width_half = (brush_width / 2) * 100;
 float* brush_width_p = &brush_width;
 double brightness = -0.2;
@@ -100,7 +101,7 @@ bool streamlines_built;
 bool drawn;
 bool blur_image = false;
 int gauss = (int)blur_image;
-float sigma = 1.;
+float sigma = 5.;
 int STEP_MAX = 1000; // Upper limit of steps to take for tracing each streamline.
 // The smaller this is, the shorter the streamline...?
 double STEP = 0.01; // You should experiment to find the optimal step size.
@@ -120,12 +121,17 @@ int stroke_percentage = 100; // 50%, 100%, 200%, etc.
 double num_strokes = stroke_percentage * 0.01;
 
 int opacity_percentage = 100;
-double opacity = 1.0;
+double opacity = 0.75;
+
+bool animate = false;
+bool animate_r = false;
+bool animate_g = false;
+bool animate_b = false;
 
 GLUI_EditText* filepath;
-GLUI_RadioGroup* debug_group, * smoothing_group, * styles_group;
+GLUI_RadioGroup* debug_group, * smoothing_group, * styles_group, *jittering_group;
 GLUI_Listbox* num_strokes_list, * opacity_list, * step_max_list, * step_list,
-* brightness_list, * jittering_list;
+* brightness_list, * jittering_list, * brush_width_list;
 
 /******************************************************************************
 Forward declaration of functions
@@ -203,6 +209,7 @@ void changeStep(int);
 void renderStyles(int);
 void changeBrightness(int);
 void updateJitter(int);
+void jitterVal(int);
 
 /******************************************************************************
 Main program.
@@ -243,24 +250,21 @@ int main(int argc, char* argv[])
 
 	/* Do some GLUI stuff */
 	GLUI* glui = GLUI_Master.create_glui("Painterly Rendering User Interface", 0, win_width + 50, 50);
-	//glui->add_statictext("Simple GLUI Test :DDDDDDDDDDDDDDDDDDDDDDDDDDDD");
+	glui->add_statictext("Painterly Rendering");
 
-	filepath =
-		glui->add_edittext("Filepath: ", GLUI_EDITTEXT_STRING, &fname, 1, updateFilepath);
-
-	GLUI_Panel* debug_panel = glui->add_panel("Debug");
-	debug_group = glui->add_radiogroup_to_panel(debug_panel, vis_version, 0, renderStep);
-	glui->add_radiobutton_to_group(debug_group, "OG Image");
-	glui->add_radiobutton_to_group(debug_group, "Sobel");
-	glui->add_radiobutton_to_group(debug_group, "Streamlines");
-	glui->add_radiobutton_to_group(debug_group, "Brush Strokes");
-
-	GLUI_EditText* brush_width_editor =
-		glui->add_edittext("Brush size: ", GLUI_EDITTEXT_FLOAT, &brush_width, 1, brushWidth);
+	brush_width_list =
+		glui->add_listbox("Brush size: ", &brush_width_int, 75, brushWidth);
+	brush_width_list->add_item(10, "---");
+	brush_width_list->add_item(10, "X-Small");
+	brush_width_list->add_item(30, "Small");
+	brush_width_list->add_item(75, "Medium");
+	brush_width_list->add_item(100, "Large");
+	brush_width_list->add_item(125, "X-Large");
 
 	num_strokes_list =
-		glui->add_listbox("Number of Brush Strokes: ", &stroke_percentage, 100, changeBrushStrokeNum);
+		glui->add_listbox("Stroke Concentration: ", &stroke_percentage, 100, changeBrushStrokeNum);
 
+	num_strokes_list->add_item(100, "---");
 	num_strokes_list->add_item(100, "Normal");
 	num_strokes_list->add_item(200, "Light");
 	num_strokes_list->add_item(50, "Heavy");
@@ -268,6 +272,7 @@ int main(int argc, char* argv[])
 	opacity_list =
 		glui->add_listbox("Opacity: ", &opacity_percentage, 100, changeOpacity);
 
+	opacity_list->add_item(100, "---");
 	opacity_list->add_item(100, "100%");
 	opacity_list->add_item(75, "75%");
 	opacity_list->add_item(50, "50%");
@@ -276,53 +281,77 @@ int main(int argc, char* argv[])
 
 	brightness_list =
 		glui->add_listbox("Brightness: ", &brightness_int, 1, changeBrightness);
-	brightness_list->add_item(20, "Normal (-0.2)");
+	brightness_list->add_item(20, "---");
+	brightness_list->add_item(20, "Normal");
 	brightness_list->add_item(50, "Dark");
-	brightness_list->add_item(0, "Bright (0.)");
-	brightness_list->add_item(-20, "Super Bright (0.2)");
+	brightness_list->add_item(0, "Bright");
+	//brightness_list->add_item(-20, "Super Bright (0.2)");
+
+	GLUI_Panel* jittering_panel = glui->add_panel("Color Jittering");
+
+	jittering_group = glui->add_radiogroup_to_panel(jittering_panel, NULL, 0, jitterVal);
+	glui->add_radiobutton_to_group(jittering_group, "None");
+	glui->add_radiobutton_to_group(jittering_group, "Red");
+	glui->add_radiobutton_to_group(jittering_group, "Green");
+	glui->add_radiobutton_to_group(jittering_group, "Blue");
 
 	jittering_list =
-		glui->add_listbox("Color Jittering: ", &color_jitter_int, NULL, updateJitter);
+		glui->add_listbox_to_panel(jittering_panel, "Color Jittering: ", &color_jitter_int, NULL, updateJitter);
 
-	jittering_list->add_item(1, "0.1");
-	jittering_list->add_item(5, "0.5");
-	jittering_list->add_item(8, "0.8");
+	jittering_list->add_item(1, "---");
+	jittering_list->add_item(1, "Light");
+	jittering_list->add_item(2, "Normal");
+	jittering_list->add_item(3, "Heavy");
+
+
+
+
+
 
 	step_max_list =
-		glui->add_listbox("STEP_MAX: ", &STEP_MAX, 1000, changeStepMax);
+		glui->add_listbox("Stroke Length: ", &STEP_MAX, 1000, changeStepMax);
 
-	step_max_list->add_item(1000, "1000");
-	step_max_list->add_item(500, "500");
-	step_max_list->add_item(250, "250");
+	step_max_list->add_item(1000, "---");
+	step_max_list->add_item(1000, "Long");
+	step_max_list->add_item(500, "Normal");
+	step_max_list->add_item(250, "Short");
 
 	step_list =
-		glui->add_listbox("STEP: ", &step_int, 10, changeStep);
+		glui->add_listbox("Stroke Spacing: ", &step_int, 10, changeStep);
 
-	step_list->add_item(10, "0.01");
-	step_list->add_item(1, "0.001");
-	step_list->add_item(100, "0.1");
-	step_list->add_item(500, "0.5");
-	step_list->add_item(50, "0.05");
-	step_list->add_item(5, "0.005");
+	step_list->add_item(10, "---");
+	step_list->add_item(1, "Narrowest");
+	step_list->add_item(5, "Narrower");
+	step_list->add_item(10, "Narrow");
+	step_list->add_item(50, "Normal");
+	step_list->add_item(100, "Wider");
+	step_list->add_item(500, "Widest");
 
-	GLUI_Panel* smoothing_panel = glui->add_panel("Smoothing");
-	glui->add_checkbox_to_panel(smoothing_panel, "Smoothing", &gauss, 0, checkForSmoothing);
+	GLUI_Panel* smoothing_panel = glui->add_panel("Blur Factor");
+	//glui->add_checkbox_to_panel(smoothing_panel, "Blurring", &gauss, 0, checkForSmoothing);
 	smoothing_group = glui->add_radiogroup_to_panel(smoothing_panel, NULL, 0, sigmaVal);
-	glui->add_radiobutton_to_group(smoothing_group, "0.");
-	glui->add_radiobutton_to_group(smoothing_group, "0.5");
-	glui->add_radiobutton_to_group(smoothing_group, "1.");
-	glui->add_radiobutton_to_group(smoothing_group, "3.");
-	glui->add_radiobutton_to_group(smoothing_group, "5.");
+	glui->add_radiobutton_to_group(smoothing_group, "None");
+	glui->add_radiobutton_to_group(smoothing_group, "Light");
+	glui->add_radiobutton_to_group(smoothing_group, "Normal");
+	glui->add_radiobutton_to_group(smoothing_group, "Heavy");
+	glui->add_radiobutton_to_group(smoothing_group, "Heaviest");
 
-	GLUI_Panel* styles_panel = glui->add_panel("Styles");
+	GLUI_Panel* styles_panel = glui->add_panel("Default Styles");
 	styles_group = glui->add_radiogroup_to_panel(styles_panel, NULL, 0, renderStyles);
 	glui->add_radiobutton_to_group(styles_group, "Default");
 	glui->add_radiobutton_to_group(styles_group, "Pointillistic");
 	glui->add_radiobutton_to_group(styles_group, "Impressionistic");
 	glui->add_radiobutton_to_group(styles_group, "WaterColor");
-	glui->add_radiobutton_to_group(styles_group, "Expressionalistic");
+	glui->add_radiobutton_to_group(styles_group, "Expressionistic");
 
-	glui->add_button("Apply", 0, (GLUI_Update_CB)glutPostRedisplay);
+	GLUI_Panel* debug_panel = glui->add_panel("Painting Process");
+	debug_group = glui->add_radiogroup_to_panel(debug_panel, vis_version, 0, renderStep);
+	glui->add_radiobutton_to_group(debug_group, "Original Image");
+	glui->add_radiobutton_to_group(debug_group, "Edges");
+	glui->add_radiobutton_to_group(debug_group, "Streamlines");
+	glui->add_radiobutton_to_group(debug_group, "Brush Strokes");
+
+	//glui->add_button("Apply", 0, (GLUI_Update_CB)glutPostRedisplay);
 	glui->add_button("Quit", 0, (GLUI_Update_CB)exit);
 
 	glui->set_main_gfx_window(main_window);
@@ -632,7 +661,7 @@ Process a keyboard action.  In particular, exit the program when an
 
 void keyboard(unsigned char key, int x, int y) {
 	int i;
-	double sigma = 1.;
+	//double sigma = 1.;
 
 	// clear out lines and points
 	//lines.clear();
@@ -1272,8 +1301,8 @@ void display_polyhedron(Polyhedron* poly)
 			glEnd();
 		}
 		//initImage();
-		imageFilter(fname);
-		displayImage();
+		//imageFilter(fname);
+		//displayImage();
 
 		// draw lines
 		for (int k = 0; k < streamlines.size(); k++)
@@ -1820,10 +1849,10 @@ void findMinMaxField(icVector3& min, icVector3& max) {
 		}
 
 	}
-	std::cout << "min: {" << min.x << ", " << min.y << ", " << min.z << "}" << std::endl;
-	std::cout << "max: {" << max.x << ", " << max.y << ", " << max.z << "}" << std::endl;
-	std::cout << "texture min: {" << cmin << ", " << rmax << ", 0}" << std::endl;
-	std::cout << "texture max: {" << cmax << ", " << rmin << ", 0}" << std::endl;
+	//std::cout << "min: {" << min.x << ", " << min.y << ", " << min.z << "}" << std::endl;
+	//std::cout << "max: {" << max.x << ", " << max.y << ", " << max.z << "}" << std::endl;
+	//std::cout << "texture min: {" << cmin << ", " << rmax << ", 0}" << std::endl;
+	//std::cout << "texture max: {" << cmax << ", " << rmin << ", 0}" << std::endl;
 
 }
 
@@ -1872,13 +1901,30 @@ icVector3 findPixelColor(icVector3 v, float jitter) {
 	g /= 255;
 	b /= 255;
 
-	/*float red_jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
-	float green_jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
+	float red_jitter = 0.;
+	float green_jitter = 0.;
+	float blue_jitter = 0.;
+	if (animate) {
+		if (animate_r) {
+			red_jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
+		}
+		else if (animate_g) {
+			animate_r = false;
+			animate_b = false;
+			green_jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
+		}
+		else if (animate_b) {
+			animate_g = false;
+			animate_r = false;
+			blue_jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
+		}
+	}
+	/*float green_jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
 	float blue_jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
 	*/
-	r += jitter + brightness;
-	g += jitter + brightness;
-	b += jitter + brightness;
+	r += red_jitter + brightness;
+	g += green_jitter + brightness;
+	b += blue_jitter + brightness;
 
 	// return
 	return icVector3(r, g, b);
@@ -1958,7 +2004,6 @@ void sortColors() {
 void initImage()
 {
 	pixels = (unsigned char*)malloc(sizeof(unsigned char) * win_width * win_height * 3);
-	memset(pixels, 255, sizeof(unsigned char) * win_width * win_height * 3);
 
 	tmax = win_width / (SCALE * NPN);
 	dmax = SCALE / win_width;
@@ -2409,15 +2454,15 @@ void gaussBlur(const std::string& fname, double sigma) {
 		}
 	}
 
-	std::cout << "Gaussian kernel: " << std::endl;
-	// Normalize the kernel
-	for (int i = 0; i < kernel_size * kernel_size; i++) {
-		kernel[i] /= sum;
-		std::cout << kernel[i] << ",\t";
-		if ((i + 1) % kernel_size == 0) {
-			std::cout << std::endl;
-		}
-	}
+	//std::cout << "Gaussian kernel: " << std::endl;
+	//// Normalize the kernel
+	//for (int i = 0; i < kernel_size * kernel_size; i++) {
+	//	kernel[i] /= sum;
+	//	std::cout << kernel[i] << ",\t";
+	//	if ((i + 1) % kernel_size == 0) {
+	//		std::cout << std::endl;
+	//	}
+	//}
 
 
 
@@ -2758,9 +2803,17 @@ void checkForSmoothing(int gauss) {
 
 void sigmaVal(int sig) {
 	sig = smoothing_group->get_int_val();
-	blur_image = true;
 
-	initGauss(sig);
+	if (sig == 0) {
+		std::cout << "\nReverting smoothing" << std::endl;
+		blur_image = false;
+	}
+	else {
+		std::cout << "\nAdding smoothing" << std::endl;
+		blur_image = true;
+		initGauss(sig);
+	}
+
 	sobelFilter(fname);
 
 	// clear out lines and points
@@ -2776,6 +2829,7 @@ void sigmaVal(int sig) {
 void brushWidth(int b) {
 	display_mode = 4;
 	if (!streamlines_built) findMinMaxField(min, max);
+	brush_width = brush_width_list->get_int_val() / static_cast<float>(100);
 	std::cout << "\nChanging brush stroke size to " << brush_width << std::endl;
 	drawn = false;
 
@@ -2933,8 +2987,8 @@ void renderStyles(int style) {
 		sobelFilter(fname);
 
 		// clear out lines and points
-	/*	lines.clear();
-		points.clear();*/
+		lines.clear();
+		points.clear();
 		// make dots along x and y axes
 		draw_lines(&points, &streamlines);
 		streamlines_built = true;
@@ -2965,8 +3019,8 @@ void renderStyles(int style) {
 		sobelFilter(fname);
 
 		// clear out lines and points
-		//lines.clear();
-		//points.clear();
+		lines.clear();
+		points.clear();
 		// make dots along x and y axes
 		draw_lines(&points, &streamlines);
 		streamlines_built = true;
@@ -2998,8 +3052,8 @@ void renderStyles(int style) {
 		}
 		sobelFilter(fname);
 		// clear out lines and points
-		//lines.clear();
-		//points.clear();
+		lines.clear();
+		points.clear();
 		// make dots along x and y axes
 		draw_lines(&points, &streamlines);
 		streamlines_built = true;
@@ -3031,8 +3085,8 @@ void renderStyles(int style) {
 		}
 		sobelFilter(fname);
 		// clear out lines and points
-		//lines.clear();
-		//points.clear();
+		lines.clear();
+		points.clear();
 		// make dots along x and y axes
 		draw_lines(&points, &streamlines);
 		streamlines_built = true;
@@ -3072,4 +3126,31 @@ void updateJitter(int j) {
 	color_jitter = j / static_cast<double>(10);
 	std::cout << "\nChanging color jitter to " << color_jitter << std::endl;
 	jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
+}
+
+void jitterVal(int j) {
+	j = jittering_group->get_int_val();
+	if (j == 0) {
+		animate = false;
+	}
+	else if (j == 1) {
+		animate = true;
+		animate_r = true;
+		animate_g = false;
+		animate_b = false;
+	}
+	else if (j == 2) {
+		animate = true;
+		animate_r = false;
+		animate_g = true;
+		animate_b = false;
+	}
+	else if (j == 3) {
+		animate = true;
+		animate_r = false;
+		animate_g = false;
+		animate_b = true;
+	}
+
+	glutPostRedisplay();
 }
