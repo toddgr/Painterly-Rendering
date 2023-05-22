@@ -250,7 +250,44 @@ int main(int argc, char* argv[])
 
 	/* Do some GLUI stuff */
 	GLUI* glui = GLUI_Master.create_glui("Painterly Rendering User Interface", 0, win_width + 50, 50);
-	glui->add_statictext("Painterly Rendering");
+	//glui->add_statictext("Painterly Rendering");
+
+	GLUI_Panel* debug_panel = glui->add_panel("Painting Process");
+	debug_group = glui->add_radiogroup_to_panel(debug_panel, vis_version, 0, renderStep);
+	glui->add_radiobutton_to_group(debug_group, "Original Image");
+	glui->add_radiobutton_to_group(debug_group, "Edges");
+	glui->add_radiobutton_to_group(debug_group, "Streamlines");
+	glui->add_radiobutton_to_group(debug_group, "Brush Strokes");
+
+	GLUI_Panel* styles_panel = glui->add_panel("Default Styles");
+	styles_group = glui->add_radiogroup_to_panel(styles_panel, NULL, 0, renderStyles);
+	glui->add_radiobutton_to_group(styles_group, "Default");
+	glui->add_radiobutton_to_group(styles_group, "Pointillistic");
+	glui->add_radiobutton_to_group(styles_group, "Impressionistic");
+	glui->add_radiobutton_to_group(styles_group, "WaterColor");
+	glui->add_radiobutton_to_group(styles_group, "Expressionistic");
+
+	glui->add_separator();
+
+
+	step_list =
+		glui->add_listbox("Stroke Spacing: ", &step_int, 10, changeStep);
+
+	step_list->add_item(10, "---");
+	step_list->add_item(1, "Narrowest");
+	step_list->add_item(5, "Narrower");
+	step_list->add_item(10, "Narrow");
+	step_list->add_item(50, "Normal");
+	step_list->add_item(100, "Wider");
+	step_list->add_item(500, "Widest");
+
+	step_max_list =
+		glui->add_listbox("Stroke Length: ", &STEP_MAX, 1000, changeStepMax);
+
+	step_max_list->add_item(1000, "---");
+	step_max_list->add_item(1000, "Long");
+	step_max_list->add_item(500, "Normal");
+	step_max_list->add_item(250, "Short");
 
 	brush_width_list =
 		glui->add_listbox("Brush size: ", &brush_width_int, 75, brushWidth);
@@ -287,6 +324,16 @@ int main(int argc, char* argv[])
 	brightness_list->add_item(0, "Bright");
 	//brightness_list->add_item(-20, "Super Bright (0.2)");
 
+	glui->add_separator();
+
+	GLUI_Panel* smoothing_panel = glui->add_panel("Smoothing");
+	//glui->add_checkbox_to_panel(smoothing_panel, "Blurring", &gauss, 0, checkForSmoothing);
+	smoothing_group = glui->add_radiogroup_to_panel(smoothing_panel, NULL, 0, sigmaVal);
+	glui->add_radiobutton_to_group(smoothing_group, "None");
+	glui->add_radiobutton_to_group(smoothing_group, "Light");
+	glui->add_radiobutton_to_group(smoothing_group, "Normal");
+	glui->add_radiobutton_to_group(smoothing_group, "Heavy");
+
 	GLUI_Panel* jittering_panel = glui->add_panel("Color Jittering");
 
 	jittering_group = glui->add_radiogroup_to_panel(jittering_panel, NULL, 0, jitterVal);
@@ -296,61 +343,14 @@ int main(int argc, char* argv[])
 	glui->add_radiobutton_to_group(jittering_group, "Blue");
 
 	jittering_list =
-		glui->add_listbox_to_panel(jittering_panel, "Color Jittering: ", &color_jitter_int, NULL, updateJitter);
+		glui->add_listbox_to_panel(jittering_panel, "Amount: ", &color_jitter_int, NULL, updateJitter);
 
-	jittering_list->add_item(1, "---");
 	jittering_list->add_item(1, "Light");
 	jittering_list->add_item(2, "Normal");
 	jittering_list->add_item(3, "Heavy");
 
 
-
-
-
-
-	step_max_list =
-		glui->add_listbox("Stroke Length: ", &STEP_MAX, 1000, changeStepMax);
-
-	step_max_list->add_item(1000, "---");
-	step_max_list->add_item(1000, "Long");
-	step_max_list->add_item(500, "Normal");
-	step_max_list->add_item(250, "Short");
-
-	step_list =
-		glui->add_listbox("Stroke Spacing: ", &step_int, 10, changeStep);
-
-	step_list->add_item(10, "---");
-	step_list->add_item(1, "Narrowest");
-	step_list->add_item(5, "Narrower");
-	step_list->add_item(10, "Narrow");
-	step_list->add_item(50, "Normal");
-	step_list->add_item(100, "Wider");
-	step_list->add_item(500, "Widest");
-
-	GLUI_Panel* smoothing_panel = glui->add_panel("Blur Factor");
-	//glui->add_checkbox_to_panel(smoothing_panel, "Blurring", &gauss, 0, checkForSmoothing);
-	smoothing_group = glui->add_radiogroup_to_panel(smoothing_panel, NULL, 0, sigmaVal);
-	glui->add_radiobutton_to_group(smoothing_group, "None");
-	glui->add_radiobutton_to_group(smoothing_group, "Light");
-	glui->add_radiobutton_to_group(smoothing_group, "Normal");
-	glui->add_radiobutton_to_group(smoothing_group, "Heavy");
-	glui->add_radiobutton_to_group(smoothing_group, "Heaviest");
-
-	GLUI_Panel* styles_panel = glui->add_panel("Default Styles");
-	styles_group = glui->add_radiogroup_to_panel(styles_panel, NULL, 0, renderStyles);
-	glui->add_radiobutton_to_group(styles_group, "Default");
-	glui->add_radiobutton_to_group(styles_group, "Pointillistic");
-	glui->add_radiobutton_to_group(styles_group, "Impressionistic");
-	glui->add_radiobutton_to_group(styles_group, "WaterColor");
-	glui->add_radiobutton_to_group(styles_group, "Expressionistic");
-
-	GLUI_Panel* debug_panel = glui->add_panel("Painting Process");
-	debug_group = glui->add_radiogroup_to_panel(debug_panel, vis_version, 0, renderStep);
-	glui->add_radiobutton_to_group(debug_group, "Original Image");
-	glui->add_radiobutton_to_group(debug_group, "Edges");
-	glui->add_radiobutton_to_group(debug_group, "Streamlines");
-	glui->add_radiobutton_to_group(debug_group, "Brush Strokes");
-
+	glui->add_separator();
 	//glui->add_button("Apply", 0, (GLUI_Update_CB)glutPostRedisplay);
 	glui->add_button("Quit", 0, (GLUI_Update_CB)exit);
 
@@ -367,7 +367,7 @@ int main(int argc, char* argv[])
 	/*clear memory before exit*/
 	poly->finalize();	// finalize everything
 	free(pixels);
-	clear_sing_points();
+	//clear_sing_points();
 	return 0;
 }
 
@@ -1339,7 +1339,6 @@ void display_polyhedron(Polyhedron* poly)
 			}
 			glEnd();
 		}
-
 		initImage();
 		imageFilter(fname);
 		displayImage();
@@ -1376,61 +1375,6 @@ void display_polyhedron(Polyhedron* poly)
 		//	Vertex point = unsorted_points[i];
 		//	drawDot(point.x, point.y, point.z, brush_width, point.R, point.G, point.B, opacity);
 		//}
-	}
-	break;
-
-	case 5:	// IBFV vector field display
-	{
-		displayIBFV();
-		for (int k = 0; k < sources.size(); k++)
-		{
-			icVector3 point = sources[k];
-			drawDot(point.x, point.y, point.z, 0.15, 1, 0, 0);
-		}
-		for (int k = 0; k < saddles.size(); k++)
-		{
-			icVector3 point = saddles[k];
-			drawDot(point.x, point.y, point.z, 0.15, 0, 1, 0);
-		}
-		for (int k = 0; k < higher_order.size(); k++)
-		{
-			icVector3 point = higher_order[k];
-			drawDot(point.x, point.y, point.z, 0.15, 0, 0, 1);
-		}
-		glutPostRedisplay();
-	}
-	break;
-
-	case 6: // add your own display mode
-	{
-		displayIBFV();
-		for (int k = 0; k < sources.size(); k++)
-		{
-			icVector3 point = sources[k];
-			drawDot(point.x, point.y, point.z, 0.15, 1, 0, 0);
-		}
-		for (int k = 0; k < saddles.size(); k++)
-		{
-			icVector3 point = saddles[k];
-			drawDot(point.x, point.y, point.z, 0.15, 0, 1, 0);
-		}
-		for (int k = 0; k < higher_order.size(); k++)
-		{
-			icVector3 point = higher_order[k];
-			drawDot(point.x, point.y, point.z, 0.15, 0, 0, 1);
-		}
-
-		for (int k = 0; k < init_points.size(); k++)
-		{
-			icVector3 vtemp = init_points[k];
-			build_streamline(vtemp.x, vtemp.y);
-		}
-
-		for (int k = 0; k < streamlines.size(); k++)
-		{
-			drawPolyLine(streamlines[k], 1.0, 1.0, 0.0, 0.0);
-		}
-		glutPostRedisplay();
 	}
 	break;
 	case 7:	// display original image
@@ -3131,21 +3075,25 @@ void updateJitter(int j) {
 void jitterVal(int j) {
 	j = jittering_group->get_int_val();
 	if (j == 0) {
+		std::cout << "\nChanging color jitter to none" << std::endl;
 		animate = false;
 	}
 	else if (j == 1) {
+		std::cout << "\nChanging color jitter to red" << std::endl;
 		animate = true;
 		animate_r = true;
 		animate_g = false;
 		animate_b = false;
 	}
 	else if (j == 2) {
+		std::cout << "\nChanging color jitter to green" << std::endl;
 		animate = true;
 		animate_r = false;
 		animate_g = true;
 		animate_b = false;
 	}
 	else if (j == 3) {
+		std::cout << "\nChanging color jitter to blue" << std::endl;
 		animate = true;
 		animate_r = false;
 		animate_g = false;
