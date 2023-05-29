@@ -23,6 +23,7 @@ class Edge;
 class Vertex {
 public:
 	double x, y, z;			/*coordinates*/
+
 	double vx, vy, vz;		/*vector field*/
 	double scalar = 0;		/*scalar field*/
 
@@ -40,8 +41,32 @@ public:
 
 	icVector3 normal;
 	void* other_props = NULL;
+
+	//Vertex& operator= (const Vertex& b) {
+	//	this->x = b.x;
+	//	this->y = b.y;
+	//	this->z = b.z;
+	//	this->R = b.R;
+	//	this->G = b.G;
+	//	this->B = b.B;
+
+	//	return *this;
+	//}
 public:
-	Vertex(double xx, double yy, double zz) { x = xx; y = yy; z = zz; }
+	Vertex(double xx, double yy, double zz) { 
+		x = xx; 
+		y = yy; 
+		z = zz; 
+	}
+
+	Vertex(double xx, double yy, double zz, double rr, double gg, double bb) {
+		x = xx;
+		y = yy;
+		z = zz;
+		R = rr;
+		G = gg;
+		B = bb;
+	}
 };
 
 class Edge {

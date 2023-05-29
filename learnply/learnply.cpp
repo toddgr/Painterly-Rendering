@@ -1,13 +1,17 @@
+#pragma comment(lib, "glui32.lib")
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
 #include <fstream>
 #include <vector>
+#include <random>
 
 #include "glError.h"
 #include "gl/glew.h"
 #include "gl/freeglut.h"
+#include "GL/glui.h"
 #include "ply.h"
 #include "icVector.H"
 #include "icMatrix.H"
@@ -26,6 +30,8 @@ std::vector<icVector3> sources;
 std::vector<icVector3> saddles;
 std::vector<icVector3> higher_order;
 std::vector<icVector3> points;
+std::vector<Vertex> unsorted_points;
+std::vector<Vertex> sorted_points;
 /*scene related variables*/
 const float zoomspeed = 0.9;
 int win_width = 1024;
@@ -36,10 +42,10 @@ const double radius_factor = 0.9;
 
 /*
 Use keys 1 to 0 to switch among different display modes.
-Each display mode can be designed to show one type 
+Each display mode can be designed to show one type
 visualization result.
 
-Predefined ones: 
+Predefined ones:
 display mode 1: solid rendering
 display mode 2: show wireframes
 display mode 3: render each quad with colors of vertices
@@ -49,7 +55,7 @@ int display_mode = 1;
 /*User Interaction related variabes*/
 float s_old, t_old;
 float rotmat[4][4];
-double zoom = 1.0;
+double zoom = 0.72;
 double translation[2] = { 0, 0 };
 int mouse_mode = -2;	// -1 = no action, 1 = tranlate y, 2 = rotate
 
@@ -62,24 +68,76 @@ float tmax = win_width / (SCALE * NPN);
 float dmax = SCALE / win_width;
 unsigned char* pixels;
 
-const double STEP = 0.01; // You should experiment to find the optimal step size.
-const int STEP_MAX = 10000; // Upper limit of steps to take for tracing each streamline.
 std::vector<PolyLine> streamlines; // Used for storing streamlines.
 
-const std::string fname = "../data/image/rbsmall.ppm";
+std::string fname = "../data/image/vader.ppm";
 int alpha = (255 * 0.2);
-float patsvec[NPN][NPN][2]; // For storing the edge field
+ppm img(fname);
+float edge_vectors[NPN][NPN][2]; // For storing the edge field
+GLubyte image_colors[NPN][NPN][4];	// For accessing pixel colors
+#define E 2.71828
+#define PI 3.1415926
 
 icVector3 min, max;
 // min and max texture coords
-int rmin = NPN - 1;
-int rmax = 0;
+int rmax = NPN - 1;
+int rmin = 0;
 int cmin = 0;
 int cmax = NPN - 1;
+
+/*****************************************************************************
+Global Variables to be messed with for UI
+******************************************************************************/
+int main_window;
+float brush_width = 0.5;
+int brush_width_int = 50;
+int brush_width_half = (brush_width / 2) * 100;
+float* brush_width_p = &brush_width;
+double brightness = -0.2;
+int brightness_int = -20;
+
+int* vis_version = 0;
+bool streamlines_built;
+bool drawn;
+bool blur_image = false;
+int gauss = (int)blur_image;
+float sigma = 5.;
+int STEP_MAX = 1000; // Upper limit of steps to take for tracing each streamline.
+// The smaller this is, the shorter the streamline...?
+double STEP = 0.01; // You should experiment to find the optimal step size.
+// The higher this is, the blockier/blurrier the painting is going to be
+// or the further apart the dots are going to be
+
+int step_int = 10; // divide by 1000 to get 0.01
+
+int color_jitter_int = 1.; // color_jitter * 10
+double color_jitter = 0.1;
+float jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
+
+double brush_w_jitter = 0.5;
+double br_w = 0.;
+
+int stroke_percentage = 100; // 50%, 100%, 200%, etc.
+double num_strokes = stroke_percentage * 0.01;
+
+int opacity_percentage = 100;
+double opacity = 0.75;
+
+bool animate = false;
+bool animate_r = false;
+bool animate_g = false;
+bool animate_b = false;
+
+GLUI_EditText* filepath;
+GLUI_RadioGroup* debug_group, * smoothing_group, * styles_group, *jittering_group;
+GLUI_Listbox* num_strokes_list, * opacity_list, * step_max_list, * step_list,
+* brightness_list, * jittering_list, * brush_width_list;
 
 /******************************************************************************
 Forward declaration of functions
 ******************************************************************************/
+
+int main(int argc, char* argv[]);
 
 void init(void);
 void initIBFV();
@@ -92,6 +150,7 @@ void display(void);
 void mouse(int button, int state, int x, int y);
 void mousewheel(int wheel, int direction, int x, int y);
 void reshape(int width, int height);
+void myGlutIdle(void);
 
 /*functions for element picking*/
 void display_vertices(GLenum mode, Polyhedron* poly);
@@ -113,7 +172,10 @@ void build_streamline(double x, double y);
 
 void findMinMaxField(icVector3& min, icVector3& max);
 icVector3 quadToTexture(double x, double y, double z);
-icVector3 textureToQuad(int c, int r, int w);
+icVector3 findPixelColor(icVector3 v, float jitter);
+void swap(Vertex& a, Vertex& b);
+void quicksort(std::vector<Vertex>& colored_points, int left, int right);
+void sortColors();
 
 // For displaying image
 void initImage();
@@ -124,10 +186,30 @@ void displayImage();
 void initSobel();
 void displaySobel();
 void sobelFilter(const std::string& fname);
+float gaussFunction(double x, double y, double sigma);
+void gaussBlur(const std::string& fname, double sigma);
+void initGauss(double std_dev);
 
 void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines);
 void print_test_points();
 void print_pixel_color_neighbors(int i, int j);
+
+/******************************************************************************
+UI Functions
+******************************************************************************/
+void updateFilepath(int);
+void renderStep(int);
+void checkForSmoothing(int);
+void sigmaVal(int);
+void brushWidth(int);
+void changeBrushStrokeNum(int);
+void changeOpacity(int);
+void changeStepMax(int);
+void changeStep(int);
+void renderStyles(int);
+void changeBrightness(int);
+void updateJitter(int);
+void jitterVal(int);
 
 /******************************************************************************
 Main program.
@@ -139,7 +221,7 @@ int main(int argc, char* argv[])
 	FILE* this_file = fopen("../data/vector_data/v9.ply", "r");
 	poly = new Polyhedron(this_file);
 	fclose(this_file);
-	
+
 	/*initialize the mesh*/
 	poly->initialize(); // initialize the mesh
 	poly->write_info();
@@ -148,11 +230,11 @@ int main(int argc, char* argv[])
 	/*init glut and create window*/
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-	glutInitWindowPosition(20, 20);
+	glutInitWindowPosition(20, 50);
 	glutInitWindowSize(win_width, win_height);
-	glutCreateWindow("Streamline Testing");
+	main_window = glutCreateWindow("Painterly Rendering");
 
-	
+
 	/*initialize openGL*/
 	init();
 
@@ -162,15 +244,130 @@ int main(int argc, char* argv[])
 	glutDisplayFunc(display);
 	glutMotionFunc(motion);
 	glutMouseFunc(mouse);
-	glutMouseWheelFunc(mousewheel);
-	
+	glutIdleFunc(myGlutIdle);
+	//glutMouseWheelFunc(mousewheel);
+
+
+	/* Do some GLUI stuff */
+	GLUI* glui = GLUI_Master.create_glui("Painterly Rendering User Interface", 0, win_width + 50, 50);
+	//glui->add_statictext("Painterly Rendering");
+
+	GLUI_Panel* debug_panel = glui->add_panel("Painting Process");
+	debug_group = glui->add_radiogroup_to_panel(debug_panel, vis_version, 0, renderStep);
+	glui->add_radiobutton_to_group(debug_group, "Original Image");
+	glui->add_radiobutton_to_group(debug_group, "Edges");
+	glui->add_radiobutton_to_group(debug_group, "Streamlines");
+	glui->add_radiobutton_to_group(debug_group, "Brush Strokes");
+
+	GLUI_Panel* styles_panel = glui->add_panel("Default Styles");
+	styles_group = glui->add_radiogroup_to_panel(styles_panel, NULL, 0, renderStyles);
+	glui->add_radiobutton_to_group(styles_group, "Default");
+	glui->add_radiobutton_to_group(styles_group, "Pointillistic");
+	glui->add_radiobutton_to_group(styles_group, "Impressionistic");
+	glui->add_radiobutton_to_group(styles_group, "WaterColor");
+	glui->add_radiobutton_to_group(styles_group, "Expressionistic");
+
+	glui->add_separator();
+
+
+	step_list =
+		glui->add_listbox("Stroke Spacing: ", &step_int, 10, changeStep);
+
+	step_list->add_item(10, "---");
+	step_list->add_item(1, "Narrowest");
+	step_list->add_item(5, "Narrower");
+	step_list->add_item(10, "Narrow");
+	step_list->add_item(50, "Normal");
+	step_list->add_item(100, "Wider");
+	step_list->add_item(500, "Widest");
+
+	step_max_list =
+		glui->add_listbox("Stroke Length: ", &STEP_MAX, 1000, changeStepMax);
+
+	step_max_list->add_item(1000, "---");
+	step_max_list->add_item(1000, "Long");
+	step_max_list->add_item(500, "Normal");
+	step_max_list->add_item(250, "Short");
+
+	brush_width_list =
+		glui->add_listbox("Brush size: ", &brush_width_int, 75, brushWidth);
+	brush_width_list->add_item(10, "---");
+	brush_width_list->add_item(10, "X-Small");
+	brush_width_list->add_item(30, "Small");
+	brush_width_list->add_item(75, "Medium");
+	brush_width_list->add_item(100, "Large");
+	brush_width_list->add_item(125, "X-Large");
+
+	num_strokes_list =
+		glui->add_listbox("Stroke Concentration: ", &stroke_percentage, 100, changeBrushStrokeNum);
+
+	num_strokes_list->add_item(100, "---");
+	num_strokes_list->add_item(100, "Normal");
+	num_strokes_list->add_item(200, "Light");
+	num_strokes_list->add_item(50, "Heavy");
+
+	opacity_list =
+		glui->add_listbox("Opacity: ", &opacity_percentage, 100, changeOpacity);
+
+	opacity_list->add_item(100, "---");
+	opacity_list->add_item(100, "100%");
+	opacity_list->add_item(75, "75%");
+	opacity_list->add_item(50, "50%");
+	opacity_list->add_item(25, "25%");
+	opacity_list->add_item(0, "0%");
+
+	brightness_list =
+		glui->add_listbox("Brightness: ", &brightness_int, 1, changeBrightness);
+	brightness_list->add_item(20, "---");
+	brightness_list->add_item(20, "Normal");
+	brightness_list->add_item(50, "Dark");
+	brightness_list->add_item(0, "Bright");
+	//brightness_list->add_item(-20, "Super Bright (0.2)");
+
+	glui->add_separator();
+
+	GLUI_Panel* smoothing_panel = glui->add_panel("Smoothing");
+	//glui->add_checkbox_to_panel(smoothing_panel, "Blurring", &gauss, 0, checkForSmoothing);
+	smoothing_group = glui->add_radiogroup_to_panel(smoothing_panel, NULL, 0, sigmaVal);
+	glui->add_radiobutton_to_group(smoothing_group, "None");
+	glui->add_radiobutton_to_group(smoothing_group, "Light");
+	glui->add_radiobutton_to_group(smoothing_group, "Normal");
+	glui->add_radiobutton_to_group(smoothing_group, "Heavy");
+
+	GLUI_Panel* jittering_panel = glui->add_panel("Color Jittering");
+
+	jittering_group = glui->add_radiogroup_to_panel(jittering_panel, NULL, 0, jitterVal);
+	glui->add_radiobutton_to_group(jittering_group, "None");
+	glui->add_radiobutton_to_group(jittering_group, "Red");
+	glui->add_radiobutton_to_group(jittering_group, "Green");
+	glui->add_radiobutton_to_group(jittering_group, "Blue");
+
+	jittering_list =
+		glui->add_listbox_to_panel(jittering_panel, "Amount: ", &color_jitter_int, NULL, updateJitter);
+
+	jittering_list->add_item(1, "Light");
+	jittering_list->add_item(2, "Normal");
+	jittering_list->add_item(3, "Heavy");
+
+
+	glui->add_separator();
+	//glui->add_button("Apply", 0, (GLUI_Update_CB)glutPostRedisplay);
+	glui->add_button("Quit", 0, (GLUI_Update_CB)exit);
+
+	glui->set_main_gfx_window(main_window);
+	GLUI_Master.set_glutIdleFunc(myGlutIdle);
+	GLUI_Master.set_glutKeyboardFunc(keyboard);
+	GLUI_Master.set_glutMouseFunc(mouse);
+	GLUI_Master.set_glutReshapeFunc(reshape);
+
+
 	/*event processing loop*/
 	glutMainLoop();
-	
+
 	/*clear memory before exit*/
 	poly->finalize();	// finalize everything
 	free(pixels);
-	clear_sing_points();
+	//clear_sing_points();
 	return 0;
 }
 
@@ -268,10 +465,10 @@ void init(void) {
 	glDisable(GL_DITHER);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
-	
+
 	//set pixel storage modes
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
-	
+
 	glEnable(GL_NORMALIZE);
 	if (poly->orientation == 0)
 		glFrontFace(GL_CW);
@@ -291,35 +488,35 @@ Initialize IBFV patterns
 
 void initIBFV()
 {
-	pixels = (unsigned char*)malloc(sizeof(unsigned char) * win_width * win_height * 3);
-	memset(pixels, 255, sizeof(unsigned char) * win_width * win_height * 3);
+	//pixels = (unsigned char*)malloc(sizeof(unsigned char) * win_width * win_height * 3);
+	//memset(pixels, 255, sizeof(unsigned char) * win_width * win_height * 3);
 
-	tmax = win_width / (SCALE * NPN);
-	dmax = SCALE / win_width;
+	//tmax = win_width / (SCALE * NPN);
+	//dmax = SCALE / win_width;
 
-	int lut[256];
-	int phase[NPN][NPN];
-	GLubyte pat[NPN][NPN][4];
-	int i, j, k;
+	//int lut[256];
+	//int phase[NPN][NPN];
+	//GLubyte pat[NPN][NPN][4];
+	//int i, j, k;
 
-	for (i = 0; i < 256; i++) lut[i] = i < 127 ? 0 : 255;
-	for (i = 0; i < NPN; i++)
-		for (j = 0; j < NPN; j++) phase[i][j] = rand() % 256;
+	//for (i = 0; i < 256; i++) lut[i] = i < 127 ? 0 : 255;
+	//for (i = 0; i < NPN; i++)
+	//	for (j = 0; j < NPN; j++) phase[i][j] = rand() % 256;
 
-	for (i = 0; i < NPN; i++)
-	{
-		for (j = 0; j < NPN; j++)
-		{
-			pat[i][j][0] =
-				pat[i][j][1] =
-				pat[i][j][2] = lut[(phase[i][j]) % 255];
-			pat[i][j][3] = ALPHA;
-		}
-	}
-	
-	glNewList(1, GL_COMPILE);
-	glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, GL_RGBA, GL_UNSIGNED_BYTE, pat);
-	glEndList();
+	//for (i = 0; i < NPN; i++)
+	//{
+	//	for (j = 0; j < NPN; j++)
+	//	{
+	//		pat[i][j][0] =
+	//			pat[i][j][1] =
+	//			pat[i][j][2] = lut[(phase[i][j]) % 255];
+	//		pat[i][j][3] = ALPHA;
+	//	}
+	//}
+	//
+	//glNewList(1, GL_COMPILE);
+	//glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, GL_RGBA, GL_UNSIGNED_BYTE, pat);
+	//glEndList();
 }
 
 /******************************************************************************
@@ -382,7 +579,7 @@ void display_quads(GLenum mode, Polyhedron* this_poly)
 			glLoadName(i + 1);
 
 		Quad* temp_q = this_poly->qlist[i];
-		
+
 		glBegin(GL_POLYGON);
 		for (j = 0; j < 4; j++) {
 			Vertex* temp_v = temp_q->verts[j];
@@ -452,7 +649,7 @@ void display_selected_vertex(Polyhedron* this_poly)
 	}
 
 	Vertex* temp_v = this_poly->vlist[this_poly->selected_vertex];
-	drawDot(temp_v->x, temp_v->y, temp_v->z, 0.15, 1.0, 0.0,0.0);
+	drawDot(temp_v->x, temp_v->y, temp_v->z, 0.15, 1.0, 0.0, 0.0);
 
 	CHECK_GL_ERROR();
 }
@@ -464,10 +661,15 @@ Process a keyboard action.  In particular, exit the program when an
 
 void keyboard(unsigned char key, int x, int y) {
 	int i;
+	//double sigma = 1.;
 
 	// clear out lines and points
-	lines.clear();
-	points.clear();
+	//lines.clear();
+	//points.clear();
+
+	//initImage();	// Initialize image out of input file
+	//initSobel();
+	//imageFilter(fname);
 
 	switch (key) {
 	case 27:	// set excape key to exit program
@@ -479,8 +681,21 @@ void keyboard(unsigned char key, int x, int y) {
 	{
 		display_mode = 7;	// Display mode for original image
 		printf("Displaying original image.\n");
-		initImage();	// Initialize image out of input file
+		//initImage();	// Initialize image out of input file
 		imageFilter(fname);
+		glutPostRedisplay();
+	}
+	break;
+
+	case 'o':
+	{
+		display_mode = 7;	// Display mode for original image
+		printf("Displaying blurred image.\n");
+		blur_image = !blur_image;
+		//imageFilter(fname);
+		initGauss(sigma);
+		//gaussBlur(fname, 1.);
+		printf("Done.\n");
 		glutPostRedisplay();
 	}
 	break;
@@ -489,7 +704,10 @@ void keyboard(unsigned char key, int x, int y) {
 	{
 		display_mode = 8;
 		printf("Displaying Sobel image.\n");
-		initSobel();
+		imageFilter(fname);
+		if (blur_image) {
+			initGauss(sigma);
+		}
 		sobelFilter(fname);
 		glutPostRedisplay();
 	}
@@ -499,20 +717,31 @@ void keyboard(unsigned char key, int x, int y) {
 	{
 		display_mode = 3;
 		findMinMaxField(min, max);
-		std::cout << "Drawing streamlines" << std::endl;
+		std::cout << "\nDrawing streamlines" << std::endl;
 
-		initSobel();
+		//initSobel();
+		if (blur_image) {
+			initGauss(sigma);
+		}
+
 		sobelFilter(fname);
 
 		//for patsvec
-		initImage();
-		imageFilter(fname);
+		//initImage();
+		//imageFilter(fname);
 
-		draw_lines(&points, &streamlines);
-		print_test_points();
-		print_pixel_color_neighbors(64, 64);
-		print_pixel_color_neighbors(140, 140);
-		print_pixel_color_neighbors(192, 192);
+		if (!streamlines_built) {
+			draw_lines(&points, &streamlines);
+			//print_test_points();
+			//print_pixel_color_neighbors(64, 64);
+			//print_pixel_color_neighbors(140, 140);
+			//print_pixel_color_neighbors(192, 192);
+			streamlines_built = true;
+		}
+
+		// make dots along x and y axes
+		//draw_lines(&points, &streamlines);
+
 		glutPostRedisplay();
 	}
 	break;
@@ -520,13 +749,20 @@ void keyboard(unsigned char key, int x, int y) {
 	case '3':	// Brush stroke display
 		display_mode = 4;
 		findMinMaxField(min, max);
-		std::cout << "Drawing brush strokes" << std::endl;
+		std::cout << "\nDrawing brush strokes" << std::endl;
 		//for patsvec
-		initSobel();
+		//initSobel();
+		if (blur_image) {
+			initGauss(sigma);
+		}
 		sobelFilter(fname);
 
-		draw_lines(&points, &streamlines);
-		print_test_points();
+		if (!streamlines_built) {
+			draw_lines(&points, &streamlines);
+			//print_test_points();
+			streamlines_built = true;
+		}
+
 		glutPostRedisplay();
 		break;
 
@@ -646,7 +882,7 @@ void mouse(int button, int state, int x, int y) {
 	int key = glutGetModifiers();
 
 	if (button == GLUT_LEFT_BUTTON || button == GLUT_RIGHT_BUTTON) {
-		
+
 		if (state == GLUT_DOWN) {
 			float xsize = (float)win_width;
 			float ysize = (float)win_height;
@@ -750,7 +986,7 @@ void mouse(int button, int state, int x, int y) {
 				printf("Selected vert id = %d\n", poly->selected_vertex);
 
 				if (poly->selected_vertex >= 0) {
-					Vertex * vtemp = poly->vlist[poly->selected_vertex];
+					Vertex* vtemp = poly->vlist[poly->selected_vertex];
 					init_points.push_back(icVector3(vtemp->x, vtemp->y, 0));
 				}
 
@@ -796,6 +1032,11 @@ void reshape(int width, int height)
 	// reset IBFV pixels buffer
 	free(pixels);
 	initIBFV();
+}
+
+void myGlutIdle(void) {
+	glutSetWindow(main_window);
+	glutPostRedisplay();
 }
 
 /******************************************************************************
@@ -846,7 +1087,7 @@ void displayIBFV()
 
 			tx = tx / win_width;
 			ty = ty / win_height;
-			
+
 			icVector2 dp = icVector2(vtemp->vx, vtemp->vy);
 			normalize(dp);
 			dp *= dmax;
@@ -975,11 +1216,22 @@ void display_polyhedron(Polyhedron* poly)
 		glEnable(GL_LIGHT1);
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		GLfloat mat_diffuse[4] = { 0.24, 0.4, 0.47, 0.0 };
-		GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+		GLfloat mat_diffuse[4] = { 0.75, 0.75, 0.75, 0.0 };
+		GLfloat mat_specular[] = { 0.75, 0.75, 0.75, 1.0 };
 		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
 		glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
 		glMaterialf(GL_FRONT, GL_SHININESS, 50.0);
+
+		//for (int i = 0; i < poly->nquads; i++) {
+		//	Quad* temp_q = poly->qlist[i];
+		//	glBegin(GL_POLYGON);
+		//	for (int j = 0; j < 4; j++) {
+		//		Vertex* temp_v = temp_q->verts[j];
+		//		glNormal3d(temp_v->normal.entry[0], temp_v->normal.entry[1], temp_v->normal.entry[2]);
+		//		glVertex3d(temp_v->x, temp_v->y, temp_v->z);
+		//	}
+		//	glEnd();
+		//}
 
 		for (int i = 0; i < poly->nquads; i++) {
 			Quad* temp_q = poly->qlist[i];
@@ -991,6 +1243,9 @@ void display_polyhedron(Polyhedron* poly)
 			}
 			glEnd();
 		}
+		initImage();
+		imageFilter(fname);
+		displayImage();
 	}
 	break;
 
@@ -1023,37 +1278,14 @@ void display_polyhedron(Polyhedron* poly)
 
 	case 3:	// Displays streamlines
 	{
-		for (int i = 0; i < poly->nquads; i++) {
-			Quad* temp_q = poly->qlist[i];
-			glBegin(GL_POLYGON);
-			for (int j = 0; j < 4; j++) {
-				Vertex* temp_v = temp_q->verts[j];
-				glNormal3d(temp_v->normal.entry[0], temp_v->normal.entry[1], temp_v->normal.entry[2]);
-				glVertex3d(temp_v->x, temp_v->y, temp_v->z);
-			}
-			glEnd();
-		}
 
-		//displayImage();
-		//glutPostRedisplay();
-
-		// draw lines
-		for (int k = 0; k < streamlines.size(); k++)
-		{
-			drawPolyLine(streamlines[k], 1.0, 1.0, 0.0, 0.0);
-		}
-	}
-	break;
-
-	case 4: // points and lines drawing example, for brush strokes
-	{
 		glEnable(GL_LIGHTING);
 		glEnable(GL_LIGHT0);
 		glEnable(GL_LIGHT1);
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		GLfloat mat_diffuse[4] = { 0.24, 0.4, 0.47, 0.0 };
-		GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+		GLfloat mat_diffuse[4] = { 0.75, 0.75, 0.75, 0.0 };
+		GLfloat mat_specular[] = { 0.75, 0.75, 0.75, 1.0 };
 		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
 		glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
 		glMaterialf(GL_FRONT, GL_SHININESS, 50.0);
@@ -1068,77 +1300,81 @@ void display_polyhedron(Polyhedron* poly)
 			}
 			glEnd();
 		}
+		//initImage();
+		//imageFilter(fname);
+		//displayImage();
 
 		// draw lines
 		for (int k = 0; k < streamlines.size(); k++)
 		{
-			drawPolyLine(streamlines[k], 1.0, 1.0, 0.0, 0.0);
+			drawPolyLine(streamlines[k], 1.0, 0.0, 0.0, 0.0);
 		}
 
-		// draw points
-		// Here, convert the vertex to pixel space and sample the color at that point on the image.
-		// set that color to be that same as the stroke that we are drawing.
+		glutPostRedisplay();
+	}
+	break;
+
+	case 4: // brush strokes
+	{
+		glEnable(GL_LIGHTING);
+		glEnable(GL_LIGHT0);
+		glEnable(GL_LIGHT1);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable(GL_BLEND);
+
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		GLfloat mat_diffuse[4] = { 0.0, 0.0, 0.0, 0.0 };
+		GLfloat mat_specular[] = { 0.0, 0.0, 0.0, 0.0 };
+		glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+		glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+		glMaterialf(GL_FRONT, GL_SHININESS, 50.0);
+
+		for (int i = 0; i < poly->nquads; i++) {
+			Quad* temp_q = poly->qlist[i];
+			glBegin(GL_POLYGON);
+			for (int j = 0; j < 4; j++) {
+				Vertex* temp_v = temp_q->verts[j];
+				glNormal3d(temp_v->normal.entry[0], temp_v->normal.entry[1], temp_v->normal.entry[2]);
+				glVertex3d(temp_v->x, temp_v->y, temp_v->z);
+			}
+			glEnd();
+		}
+		initImage();
+		imageFilter(fname);
+		displayImage();
+
+		unsorted_points.clear();
+
+		// if streamlines havent been built yet
+		// add color to points
+		icVector3 prevpoint = icVector3(0., 0., 0.);
 		for (int k = 0; k < points.size(); k++)
 		{
+
+			//if (!drawn) {
+			//	br_w = (static_cast<double>(-brush_width_half) + rand() % (brush_width_half + brush_width_half + 1)) / 100;
+			//}
 			icVector3 point = points[k];
-			drawDot(point.x, point.y, point.z);
-		}
-		break;
-	}
-	break;
+			if (point != prevpoint) {
+				icVector3 color = findPixelColor(icVector3(point.x, point.y, point.z), jitter);
+				//don't draw them yet... instead push them to a vector to be sorted
 
-	case 5:	// IBFV vector field display
-	{
-		displayIBFV();
-		for (int k = 0; k < sources.size(); k++)
-		{
-			icVector3 point = sources[k];
-			drawDot(point.x, point.y, point.z,  0.15, 1, 0, 0);
+				//drawDot(point.x, point.y, point.z, brush_width + br_w, color.x, color.y, color.z, opacity);
+				drawDot(point.x, point.y, point.z, brush_width, color.x, color.y, color.z, opacity);
+				//unsorted_points.push_back(Vertex(point.x, point.y, point.z, color.x, color.y, color.z));
+			}
+			prevpoint = point;
 		}
-		for (int k = 0; k < saddles.size(); k++)
-		{
-			icVector3 point = saddles[k];
-			drawDot(point.x, point.y, point.z, 0.15, 0, 1, 0);
-		}
-		for (int k = 0; k < higher_order.size(); k++)
-		{
-			icVector3 point = higher_order[k];
-			drawDot(point.x, point.y, point.z, 0.15, 0, 0, 1);
-		}
-		glutPostRedisplay();
-	}
-	break;
+		//drawn = true;
+		// sort points
+		//sortColors();
+		//quicksort(unsorted_points, 0, unsorted_points.size() - 1);
 
-	case 6: // add your own display mode
-	{
-		displayIBFV();
-		for (int k = 0; k < sources.size(); k++)
-		{
-			icVector3 point = sources[k];
-			drawDot(point.x, point.y, point.z, 0.15, 1, 0, 0);
-		}
-		for (int k = 0; k < saddles.size(); k++)
-		{
-			icVector3 point = saddles[k];
-			drawDot(point.x, point.y, point.z, 0.15, 0, 1, 0);
-		}
-		for (int k = 0; k < higher_order.size(); k++)
-		{
-			icVector3 point = higher_order[k];
-			drawDot(point.x, point.y, point.z, 0.15, 0, 0, 1);
-		}
-
-		for (int k = 0; k < init_points.size(); k++)
-		{
-			icVector3 vtemp = init_points[k];
-			build_streamline(vtemp.x, vtemp.y);
-		}
-
-		for (int k = 0; k < streamlines.size(); k++)
-		{
-			drawPolyLine(streamlines[k], 1.0, 1.0, 0.0, 0.0);
-		}
-		glutPostRedisplay();
+		// draw points in sorted order
+		//for (int i = 0; i < unsorted_points.size(); i++) {
+		//	Vertex point = unsorted_points[i];
+		//	drawDot(point.x, point.y, point.z, brush_width, point.R, point.G, point.B, opacity);
+		//}
 	}
 	break;
 	case 7:	// display original image
@@ -1232,7 +1468,7 @@ void find_singularities()
 		// then it corresponds to a singularity inside the quad.
 		double s, t;
 
-		if ( s1 > 0 && s1 < 1 && t1 > 0 && t1 < 1 ) {
+		if (s1 > 0 && s1 < 1 && t1 > 0 && t1 < 1) {
 			// (s1, t1)
 			s = s1;
 			t = t1;
@@ -1328,40 +1564,100 @@ double sing_prox(icVector2 pos)
 	return prox;
 }
 
+// Find the vertex in the list of vertices in the polyhedron
+// This is where we will define the vx and vy of the vertex to be that
+// of the edge field
+Vertex* find_vertex(double xx, double yy) {
+	for (int i = 0; i < poly->nverts; i++) {
+		Vertex* v = poly->vlist[i];
+		if (std::abs(v->x - xx) < 1.0e-6 && std::abs(v->y - yy) < 1.0e-6) {
+			v->vx = quadToTexture(xx, yy, 0).x;
+			v->vy = quadToTexture(xx, yy, 0).y;
+			return v;
+		}
+	}
+	return NULL;
+}
+
 Quad* streamline_step(icVector2& cpos, icVector2& npos, Quad* cquad, bool forward)
 {
-	double x1, y1, x2, y2, f11, f12, f21, f22, g11, g21, g12, g22;
-	double z = 0.; // We don't need anything in the z direction
+	//double x1, y1, x2, y2, f11, f12, f21, f22, g11, g21, g12, g22;
+	//double f11, f12, f21, f22, g11, g21, g12, g22;
+	const double z = 0.; // We don't need anything in the z direction
 	Vertex* v11, * v12, * v21, * v22;
 
-	x1 = poly->smallest_x(cquad);
-	x2 = poly->largest_x(cquad);
-	y1 = poly->smallest_y(cquad);
-	y2 = poly->largest_y(cquad);
+	const double x1 = poly->smallest_x(cquad);
+	const double x2 = poly->largest_x(cquad);
+	const double y1 = poly->smallest_y(cquad);
+	const double y2 = poly->largest_y(cquad);
 
-	v11 = find_vertex(x1, y1);
-	f11 = v11->vx;
-	g11 = v11->vy;
+	const icVector3 vxy11 = quadToTexture(x1, y1, 0);
+	const icVector3 vxy12 = quadToTexture(x1, y2, 0);
+	const icVector3 vxy21 = quadToTexture(x2, y1, 0);
+	const icVector3 vxy22 = quadToTexture(x2, y2, 0);
 
-	v12 = find_vertex(x1, y2);
-	f12 = v12->vx;
-	g12 = v12->vy;
+	for (int i = 0; i < poly->nverts; i++) {
+		Vertex* v = poly->vlist[i];
 
-	v21 = find_vertex(x2, y1);
-	f21 = v21->vx;
-	g21 = v21->vy;
+		//x1,y1
+		if (fabs(v->x - x1) < 1.0e-6 && fabs(v->y - y1) < 1.0e-6) {
+			v->vx = vxy11.x;
+			v->vy = vxy11.y;
+			v11 = v;
+			continue;
+		}
 
-	v22 = find_vertex(x2, y2);
-	f22 = v22->vx;
-	g22 = v22->vy;
+		//x1,y2
+		if (fabs(v->x - x1) < 1.0e-6 && fabs(v->y - y2) < 1.0e-6) {
+			v->vx = vxy12.x;
+			v->vy = vxy12.y;
+			v12 = v;
+			continue;
+		}
 
-	double x0 = cpos.x;
-	double y0 = cpos.y;
+		//x2,y1
+		if (fabs(v->x - x2) < 1.0e-6 && fabs(v->y - y1) < 1.0e-6) {
+			v->vx = vxy21.x;
+			v->vy = vxy21.y;
+			v21 = v;
+			continue;
+		}
+
+		//x2,y2
+		if (fabs(v->x - x2) < 1.0e-6 && fabs(v->y - y2) < 1.0e-6) {
+			v->vx = vxy22.x;
+			v->vy = vxy22.y;
+			v22 = v;
+			continue;
+		}
+	}
+
+	//std::cout << "vs found." << std::endl;
+
+	//v11 = find_vertex(x1, y1);
+	const double f11 = v11->vx;
+	const double g11 = v11->vy;
+
+	//v12 = find_vertex(x1, y2);
+	const double f12 = v12->vx;
+	const double g12 = v12->vy;
+
+	//v21 = find_vertex(x2, y1);
+	const double f21 = v21->vx;
+	const double g21 = v21->vy;
+
+	//v22 = find_vertex(x2, y2);
+	const double f22 = v22->vx;
+	const double g22 = v22->vy;
+
+	const double x0 = cpos.x;
+	const double  y0 = cpos.y;
 	icVector2 vect;
-	double m1 = (x2 - x0) * (y2 - y0) / (x2 - x1) / (y2 - y1);
-	double m2 = (x0 - x1) * (y2 - y0) / (x2 - x1) / (y2 - y1);
-	double m3 = (x2 - x0) * (y0 - y1) / (x2 - x1) / (y2 - y1);
-	double m4 = (x0 - x1) * (y0 - y1) / (x2 - x1) / (y2 - y1);
+
+	const double m1 = (x2 - x0) * (y2 - y0) / (x2 - x1) / (y2 - y1);
+	const double m2 = (x0 - x1) * (y2 - y0) / (x2 - x1) / (y2 - y1);
+	const double m3 = (x2 - x0) * (y0 - y1) / (x2 - x1) / (y2 - y1);
+	const double m4 = (x0 - x1) * (y0 - y1) / (x2 - x1) / (y2 - y1);
 	vect.x = m1 * f11 + m2 * f21 + m3 * f12 + m4 * f22;
 	vect.y = m1 * g11 + m2 * g21 + m3 * g12 + m4 * g22;
 	normalize(vect);
@@ -1388,7 +1684,7 @@ Quad* streamline_step(icVector2& cpos, icVector2& npos, Quad* cquad, bool forwar
 		dprod_x1 = dot(vect, cross_x1 - cpos);
 		dprod_x2 = dot(vect, cross_x2 - cpos);
 		// check y1
-		if (cross_y1.x >= x1 && cross_y1.x <= x2 && dprod_y1 > 0 ) {
+		if (cross_y1.x >= x1 && cross_y1.x <= x2 && dprod_y1 > 0) {
 			npos = cross_y1;
 			cross_edge = poly->find_edge(v11, v21);
 			nquad = poly->other_quad(cross_edge, cquad);
@@ -1439,7 +1735,6 @@ void build_streamline(double x, double y)
 			LineSegment linear_seg = LineSegment(cpos.x, cpos.y, 0, npos.x, npos.y, 0);
 			pline.push_back(linear_seg);
 
-			// Add a point here, let it sample the color of the image
 			points.push_back(icVector3(cpos.x, cpos.y, 0));
 
 			cpos = npos;
@@ -1498,10 +1793,10 @@ void findMinMaxField(icVector3& min, icVector3& max) {
 		}
 
 	}
-	std::cout << "min: {" << min.x << ", " << min.y << ", " << min.z << "}" << std::endl;
-	std::cout << "max: {" << max.x << ", " << max.y << ", " << max.z << "}" << std::endl;
-	std::cout << "texture min: {" << cmin << ", " << rmax << ", 0}" << std::endl;
-	std::cout << "texture max: {" << cmax << ", " << rmin << ", 0}" << std::endl;
+	//std::cout << "min: {" << min.x << ", " << min.y << ", " << min.z << "}" << std::endl;
+	//std::cout << "max: {" << max.x << ", " << max.y << ", " << max.z << "}" << std::endl;
+	//std::cout << "texture min: {" << cmin << ", " << rmax << ", 0}" << std::endl;
+	//std::cout << "texture max: {" << cmax << ", " << rmin << ", 0}" << std::endl;
 
 }
 
@@ -1516,11 +1811,6 @@ icVector3 quadToTexture(double x, double y, double z) {
 	double r = ((x * (rmax - rmin)) +
 		((rmin * max.y) - (rmax * min.y))) / (max.y - min.y);
 
-	//double c = ((x - min.x) / (max.x - min.x)) * (cmax - cmin) + cmin;
-	////double r = ((y - min.y) / (max.y - min.y)) * (rmax - rmin) + rmin;
-	//double r = ((y - min.y) / (max.y - min.y)) * (rmin - rmax) + rmax;
-	// r = rmax - r;
-	
 	// Find c,r vector in texture space
 	int ir = (int)r;
 	int ic = (int)c;
@@ -1528,61 +1818,145 @@ icVector3 quadToTexture(double x, double y, double z) {
 	double vc = 0, vr = 0;
 
 	// Make sure that the vector is not out of bounds
-	if (ic > 0 || ir > 0 || ic < NPN-1 || ir < NPN-1) {
-		vc = patsvec[ic][ir][1];
-		vr = patsvec[ic][ir][0];
+	if (ic > 0 || ir > 0 || ic < NPN - 1 || ir < NPN - 1) {
+		vc = edge_vectors[ic][ir][1];
+		vr = edge_vectors[ic][ir][0];
 	}
-	//else {
-	//	vc = 0.0;
-	//	vr = 0.0;
-	//}
 
-
-	// Define vector with respect to c,r
-	//vc += c;
-	//vr += r;
-
-	//// Convert c,r to x,y space
-	//x = ((vc * (max.x - min.x)) -
-	//	((cmin * max.x) - (cmax * min.x))) / (cmax - cmin);
-	//y = ((vr * (max.y - min.y)) -
-	//	((rmax * max.y) - (rmin * min.y))) / (rmin - rmax);
-
-	//std::cout << x << ", " << y << ", " << z << std::endl;
 	return icVector3(vc, vr, 0.);
 }
 
+// Find the color of a pixel given a coordinate on the mesh
+icVector3 findPixelColor(icVector3 v, float jitter) {
+	double r = 0., g = 0., b = 0.;
+	// v is a vertex in the mesh space
+	// convert to pixel space
+	int col = ((v.y * (cmax - cmin)) +
+		((cmin * max.x) - (cmax * min.x))) / (max.x - min.x);
+	int row = ((v.x * (rmax - rmin)) +
+		((rmin * max.y) - (rmax * min.y))) / (max.y - min.y);
 
-// Find the vertex in the list of vertices in the polyhedron
-// This is where we will define the vx and vy of the vertex to be that
-// of the edge field
-Vertex* find_vertex(double xx, double yy) {
-	for (int i = 0; i < poly->nverts; i++) {
-		Vertex* v = poly->vlist[i];
-		if ( std::abs(v->x - xx) < 1.0e-6 && std::abs(v->y - yy)< 1.0e-6 ) {
-			v->vx = quadToTexture(xx, yy, 0).x;
-			v->vy = quadToTexture(xx, yy, 0).y;
-			return v;
+	// find rgb values at a given pixel
+	r = image_colors[col][row][0];
+	g = image_colors[col][row][1];
+	b = image_colors[col][row][2];
+
+	r /= 255;
+	g /= 255;
+	b /= 255;
+
+	float red_jitter = 0.;
+	float green_jitter = 0.;
+	float blue_jitter = 0.;
+	if (animate) {
+		if (animate_r) {
+			red_jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
+		}
+		else if (animate_g) {
+			animate_r = false;
+			animate_b = false;
+			green_jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
+		}
+		else if (animate_b) {
+			animate_g = false;
+			animate_r = false;
+			blue_jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
 		}
 	}
-	return NULL;
+	/*float green_jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
+	float blue_jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
+	*/
+	r += red_jitter + brightness;
+	g += green_jitter + brightness;
+	b += blue_jitter + brightness;
+
+	// return
+	return icVector3(r, g, b);
+}
+
+// Sort the points based on the user input
+// can sort by r, g, or b.
+// maybe in the future also have ascending and descending for each value as well
+void swap(Vertex& a, Vertex& b) {
+	// swap two points
+	Vertex temp = a;
+	a = b;
+	b = temp;
+}
+
+int partition(std::vector<Vertex>& colored_points, int low, int high) {
+	// currently comparing R values only
+	Vertex pivot = colored_points[high];
+	int i = low - 1;
+
+	for (int j = low; j < high; j++) {
+		if (colored_points[j].R <= pivot.R) {
+			i++;
+			// swap the two vertices
+			swap(colored_points[i], colored_points[j]);
+		}
+	}
+
+	swap(colored_points[i + 1], colored_points[high]);
+	// returns the next partition val
+	return i + 1;
+}
+
+void quicksort(std::vector<Vertex>& colored_points, int left, int right) {
+	//if (low < high) {
+	//	int pi = partition(unsorted_points, low, high);
+
+	//	quicksort(unsorted_points, low, pi - 1);
+	//	if (high == unsorted_points.size() - 1) {
+	//		std::cout << "reached the end?" << std::endl;
+	//	}
+	//	quicksort(unsorted_points, pi + 1, high);
+	//}
+
+	if (left >= right) {
+		return;
+	}
+
+	double pivot = colored_points[(left + right) / 2].G;
+	int i = left, j = right;
+
+	while (i <= j) {
+		while (colored_points[i].G < pivot) {
+			i++;
+		}
+		while (colored_points[j].G > pivot) {
+			j--;
+		}
+		if (i <= j) {
+			swap(colored_points[i], colored_points[j]);
+			i++;
+			j--;
+		}
+	}
+
+	quicksort(colored_points, left, j);
+	quicksort(colored_points, i, right);
+}
+
+void sortColors() {
+	// check which channel to sort by
+	// use switch
+	quicksort(unsorted_points, 0, unsorted_points.size() - 1);
 }
 
 // Initialize image to be displayed
 void initImage()
 {
 	pixels = (unsigned char*)malloc(sizeof(unsigned char) * win_width * win_height * 3);
-	memset(pixels, 255, sizeof(unsigned char) * win_width * win_height * 3);
 
 	tmax = win_width / (SCALE * NPN);
 	dmax = SCALE / win_width;
 
 	int lut[256];
 	int phase[NPN][NPN];
-	GLubyte pat[NPN][NPN][4];
 	int i, j, k;
 
-	
+
 	for (i = 0; i < 256; i++) lut[i] = i < 127 ? 0 : 255;
 	for (i = 0; i < NPN; i++)
 		//for (j = 0; j < npn; j++) phase[i][j] = rand() % 256;
@@ -1592,15 +1966,15 @@ void initImage()
 	{
 		for (j = 0; j < NPN; j++)
 		{
-			pat[i][j][0] =
-				pat[i][j][1] =
-				pat[i][j][2] = lut[(phase[i][j]) % 255];
-			pat[i][j][3] = ALPHA;
+			image_colors[i][j][0] =
+				image_colors[i][j][1] =
+				image_colors[i][j][2] = lut[(phase[i][j]) % 255];
+			image_colors[i][j][3] = ALPHA;
 		}
 	}
 
 	glNewList(1, GL_COMPILE);
-	glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, GL_RGBA, GL_UNSIGNED_BYTE, pat);
+	glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_colors);
 	glEndList();
 }
 
@@ -1616,25 +1990,23 @@ void imageFilter(const std::string& fname) {
 		{0, 0, 0},
 		{1, 2, 1} };
 
-	ppm img(fname);
-	GLubyte pat[NPN][NPN][4];	// image before filter is applied - intensity
-	GLubyte pat0[NPN][NPN][4];	// image after filter is applied - edge field?
+	GLubyte pat[NPN][NPN][4];	// image before filter is applied
 
 	// Set color of each pixel
 	int i, j;
 	for (i = 0; i < NPN; i++) {		// rows
 		for (j = 0; j < NPN; j++) { // columns
-			
-			pat0[i][j][0] = img.r[(NPN - i - 1) * NPN + j];
-			pat0[i][j][1] = img.g[(NPN - i - 1) * NPN + j];
-			pat0[i][j][2] = img.b[(NPN - i - 1) * NPN + j];
-			pat0[i][j][3] = alpha;
+
+			image_colors[i][j][0] = img.r[(NPN - i - 1) * NPN + j];
+			image_colors[i][j][1] = img.g[(NPN - i - 1) * NPN + j];
+			image_colors[i][j][2] = img.b[(NPN - i - 1) * NPN + j];
+			image_colors[i][j][3] = alpha;
 		}
 	}
 
 	glNewList(1, GL_COMPILE);
 	glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0,
-		GL_RGBA, GL_UNSIGNED_BYTE, pat0);
+		GL_RGBA, GL_UNSIGNED_BYTE, image_colors);
 	glEndList();
 
 }
@@ -1866,26 +2238,30 @@ void sobelFilter(const std::string& fname) {
 		{0, 0, 0},
 		{1, 2, 1} };
 
-	ppm img(fname);
-	GLubyte pat0[NPN][NPN][4];	// image before filter is applied - intensity
-	GLubyte pat[NPN][NPN][4];
+	GLubyte intensity[NPN][NPN][4];	// image before filter is applied - intensity
+	GLubyte sobelpat[NPN][NPN][4];
 
 	// Set color of each pixel to its intensity
 	int i, j;
 	for (i = 0; i < NPN; i++) {		// rows
 		for (j = 0; j < NPN; j++) { // columns
-			float c = 0.299 * (float)img.r[(NPN - i - 1) * NPN + j]+
-				0.587 * (float)img.g[(NPN - i - 1) * NPN + j] +
-				0.114 * (float)img.b[(NPN - i - 1) * NPN + j];
-			pat0[i][j][0] = c;
-			pat0[i][j][1] = c;
-			pat0[i][j][2] = c;
-			pat0[i][j][3] = alpha;
+			//float c = 0.299 * (float)img.r[(NPN - i - 1) * NPN + j]+
+			//	0.587 * (float)img.g[(NPN - i - 1) * NPN + j] +
+			//	0.114 * (float)img.b[(NPN - i - 1) * NPN + j];
+
+			float c = 0.299 * image_colors[i][j][0] +
+				0.587 * image_colors[i][j][1] +
+				0.114 * image_colors[i][j][2];
+
+			intensity[i][j][0] = c;
+			intensity[i][j][1] = c;
+			intensity[i][j][2] = c;
+			intensity[i][j][3] = alpha;
 		}
 	}
 
 	// Sobel filter
-	for (i = 1; i < NPN-1; i++) {		// row
+	for (i = 1; i < NPN - 1; i++) {		// row
 		for (j = 1; j < NPN - 1; j++) {	// column
 			// Initial magnitude for r,g,b (0,1,2) in the x and y directions
 			float magx = 0.0;
@@ -1903,36 +2279,36 @@ void sobelFilter(const std::string& fname) {
 			// Trying the messier version
 			// xdir	
 			// Top row
-			if (i > 0 && j > 0) magx += pat0[i-1][j-1][0] * kernelx[0][0];
-			if (j > 0) magx += pat0[i][j-1][0] * kernelx[1][0];
-			if (i < NPN-1 && j > 0) magx += pat0[i+1][j-1][0] * kernelx[2][0];
+			if (i > 0 && j > 0) magx += intensity[i - 1][j - 1][0] * kernelx[0][0];
+			if (j > 0) magx += intensity[i][j - 1][0] * kernelx[1][0];
+			if (i < NPN - 1 && j > 0) magx += intensity[i + 1][j - 1][0] * kernelx[2][0];
 
 			// Middle row
-			if (i > 0) magx += pat0[i - 1][j][0] * kernelx[0][1];
-			magx += pat0[i][j][0] * kernelx[1][1];
-			if (i < NPN-1) magx += pat0[i+1][j][0] * kernelx[2][1];
+			if (i > 0) magx += intensity[i - 1][j][0] * kernelx[0][1];
+			magx += intensity[i][j][0] * kernelx[1][1];
+			if (i < NPN - 1) magx += intensity[i + 1][j][0] * kernelx[2][1];
 
 			// Bottom row
-			if (i >0 && j < NPN-1)magx += pat0[i-1][j+1][0] * kernelx[0][2];
-			if (j < NPN-1) magx += pat0[i][j+1][0] * kernelx[1][2];
-			if (i < NPN-1 && j < NPN-1) magx += pat0[i+1][j+1][0] * kernelx[2][2];
+			if (i > 0 && j < NPN - 1)magx += intensity[i - 1][j + 1][0] * kernelx[0][2];
+			if (j < NPN - 1) magx += intensity[i][j + 1][0] * kernelx[1][2];
+			if (i < NPN - 1 && j < NPN - 1) magx += intensity[i + 1][j + 1][0] * kernelx[2][2];
 
 
 			//// ydir
 			// Top row
-			if (i > 0 && j > 0) magy += pat0[i - 1][j - 1][0] * kernely[0][0];
-			if (j > 0) magy += pat0[i][j - 1][0] * kernely[1][0];
-			if (i < NPN - 1 && j > 0) magy += pat0[i + 1][j - 1][0] * kernely[2][0];
-			
+			if (i > 0 && j > 0) magy += intensity[i - 1][j - 1][0] * kernely[0][0];
+			if (j > 0) magy += intensity[i][j - 1][0] * kernely[1][0];
+			if (i < NPN - 1 && j > 0) magy += intensity[i + 1][j - 1][0] * kernely[2][0];
+
 			// Middle row
-			if (i > 0) magy += pat0[i - 1][j][0] * kernely[0][1];
-			magy += pat0[i][j][0] * kernely[1][1];
-			if (i < NPN - 1) magy += pat0[i + 1][j][0] * kernely[2][1];
+			if (i > 0) magy += intensity[i - 1][j][0] * kernely[0][1];
+			magy += intensity[i][j][0] * kernely[1][1];
+			if (i < NPN - 1) magy += intensity[i + 1][j][0] * kernely[2][1];
 
 			// Bottom row
-			if (i > 0 && j < NPN - 1) magy += pat0[i - 1][j + 1][0] * kernely[0][2];
-			if (j < NPN - 1) magy += pat0[i][j + 1][0] * kernely[1][2];
-			if (i < NPN - 1 && j < NPN - 1) magy += pat0[i + 1][j + 1][0] * kernely[2][2];
+			if (i > 0 && j < NPN - 1) magy += intensity[i - 1][j + 1][0] * kernely[0][2];
+			if (j < NPN - 1) magy += intensity[i][j + 1][0] * kernely[1][2];
+			if (i < NPN - 1 && j < NPN - 1) magy += intensity[i + 1][j + 1][0] * kernely[2][2];
 
 			//mag0x /= NPN;
 			//mag0y /= NPN;
@@ -1957,29 +2333,29 @@ void sobelFilter(const std::string& fname) {
 			if (v2 < 0) v2 = 0;
 
 			// Assign RGB values to current pixel for display
-			pat[i][j][0] = v0;
-			pat[i][j][1] = v1;
-			pat[i][j][2] = v2;
-			pat[i][j][3] = alpha;
+			sobelpat[i][j][0] = v0;
+			sobelpat[i][j][1] = v1;
+			sobelpat[i][j][2] = v2;
+			sobelpat[i][j][3] = alpha;
 
 
 
 			// Where the vectors are stored
 			auto mag = std::sqrt(magx * magx + magy * magy);
 			if (mag != 0) {
-				patsvec[i][j][0] = magx / mag;
-				patsvec[i][j][1] = magy / mag;
+				edge_vectors[i][j][0] = magx / mag;
+				edge_vectors[i][j][1] = magy / mag;
 			}
 			else {
-				patsvec[i][j][0] = 0.;
-				patsvec[i][j][1] = 0.;
+				edge_vectors[i][j][0] = 0.;
+				edge_vectors[i][j][1] = 0.;
 			}
 
-			if (std::isinf(patsvec[i][j][0]) || std::isinf(patsvec[i][j][1]))
+			if (std::isinf(edge_vectors[i][j][0]) || std::isinf(edge_vectors[i][j][1]))
 			{
 				std::cout << "find infinity" << std::endl;
 			}
-			
+
 
 		}
 	}
@@ -1994,58 +2370,206 @@ void sobelFilter(const std::string& fname) {
 
 	glNewList(1, GL_COMPILE);
 	glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0,
-		GL_RGBA, GL_UNSIGNED_BYTE, pat);
+		GL_RGBA, GL_UNSIGNED_BYTE, sobelpat);
 	glEndList();
 
 }
 
-// example function for using dots and polylines
+// Calculates the transformation to apply to each pixel in the image
+float gaussFunction(double x, double y, double sigma) {
+	float exponent = -(x * x + y * y) / (2 * sigma * sigma);
+	return (1 / (2 * PI * sigma * sigma) * pow(E, exponent));
+}
+
+// Apply gaussian blur to image before edge detection
+// Aims to create a smoother edge field to work from
+void gaussBlur(const std::string& fname, double sigma) {
+
+	// Gaussian kernel-- determined based on the size of sigma
+	int kernel_size = ceil(sigma * 3) * 2 + 1;
+
+	double* kernel = new double[kernel_size * kernel_size];
+	double sum = 0;
+	for (int y = -kernel_size / 2; y <= kernel_size / 2; y++) {
+		for (int x = -kernel_size / 2; x <= kernel_size / 2; x++) {
+			double value = gaussFunction(x, y, sigma);
+			kernel[(y + kernel_size / 2) * kernel_size + x + kernel_size / 2] = value;
+			sum += value;
+		}
+	}
+
+	//std::cout << "Gaussian kernel: " << std::endl;
+	//// Normalize the kernel
+	//for (int i = 0; i < kernel_size * kernel_size; i++) {
+	//	kernel[i] /= sum;
+	//	std::cout << kernel[i] << ",\t";
+	//	if ((i + 1) % kernel_size == 0) {
+	//		std::cout << std::endl;
+	//	}
+	//}
+
+
+
+	// gauss texture
+	GLubyte image[NPN][NPN][4];	// image before filter is applied - intensity
+	//GLubyte gausspat[NPN][NPN][4];
+
+	// For each row and column, check each RGB channel
+	int i, j, k; //row, column, color channel
+	for (i = 0; i < NPN - 1; i++) {		// row
+		for (j = 0; j < NPN - 1; j++) {	// column
+			//for (k = 0; k < 3; k++) {
+				// If the pixel is a boundary pixel, we keep it the same color
+					// (This might be where we can implement edge preservation later as well)
+
+			float magr = 0.0;
+			float magg = 0.0;
+			float magb = 0.0;
+
+
+			// Convolve the kernels and the images
+			for (int ki = -kernel_size / 2; ki <= kernel_size / 2; ki++) {
+				for (int kj = -kernel_size / 2; kj <= kernel_size / 2; kj++) {
+					int loc = ((kj + (kernel_size / 2)) * kernel_size) + (ki + (kernel_size / 2));
+					magr += image_colors[i - 1 + ki][j - 1 + kj][0] * kernel[loc];
+					magg += image_colors[i - 1 + ki][j - 1 + kj][1] * kernel[loc];
+					magb += image_colors[i - 1 + ki][j - 1 + kj][2] * kernel[loc];
+				}
+			}
+
+			// Before we assign this, we need to normalize the magnitudes somehow
+			image_colors[i][j][0] = magr;
+			image_colors[i][j][1] = magg;
+			image_colors[i][j][2] = magb;
+
+			//}
+		}
+	}
+
+	// Free this memory
+	delete[] kernel;
+
+}
+
+// Initialize blurred image to be displayed
+void initGauss(double std_dev)
+{
+	pixels = (unsigned char*)malloc(sizeof(unsigned char) * win_width * win_height * 3);
+	memset(pixels, 255, sizeof(unsigned char) * win_width * win_height * 3);
+
+	tmax = win_width / (SCALE * NPN);
+	dmax = SCALE / win_width;
+
+	for (int i = 0; i < NPN; i++) {		// rows
+		for (int j = 0; j < NPN; j++) { // columns
+
+			image_colors[i][j][0] = img.r[(NPN - i - 1) * NPN + j];
+			image_colors[i][j][1] = img.g[(NPN - i - 1) * NPN + j];
+			image_colors[i][j][2] = img.b[(NPN - i - 1) * NPN + j];
+			image_colors[i][j][3] = alpha;
+		}
+	}
+
+	gaussBlur(fname, std_dev);
+
+	glNewList(1, GL_COMPILE);
+	glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_colors);
+	glEndList();
+}
+
+// draws streamlines at consistent points on the image
 void draw_lines(std::vector<icVector3>* points, std::vector<PolyLine>* lines)
 {
 	// make dots along x and y axes
-	for (int i = -10; i <= 10; i++)
+	for (double i = min.x; i <= max.x; i += num_strokes)
 	{
-		for (int j = -10; j <= 10; j++) {
+		for (double j = min.y; j <= max.y; j += num_strokes) {
+			//std::cout << "building streamline[" << i << "][" << j << "]..." << std::endl;
 			build_streamline(i, j);
 		}
-	//	//icVector3 x_ax = icVector3(i, 0, 0);
-	//	//icVector3 y_ax = icVector3(0, i, 0);
-	//	//points->push_back(x_ax);
-	//	//points->push_back(y_ax);
-
-		//Build streamlines from each point on the axes
-		//build_streamline(i, 0);
-		//build_streamline(0, i);
+		if (i == -10) {
+			std::cout << "X--------------------" << std::endl;
+		}
+		if (i == -9) {
+			std::cout << "XX-------------------" << std::endl;
+		}
+		if (i == -8) {
+			std::cout << "XXX------------------" << std::endl;
+		}
+		if (i == -7) {
+			std::cout << "XXXX-----------------" << std::endl;
+		}
+		if (i == -6) {
+			std::cout << "XXXXX----------------" << std::endl;
+		}
+		if (i == -5) {
+			std::cout << "XXXXXX---------------" << std::endl;
+		}
+		if (i == -4) {
+			std::cout << "XXXXXXX--------------" << std::endl;
+		}
+		if (i == -3) {
+			std::cout << "XXXXXXXX-------------" << std::endl;
+		}
+		if (i == -2) {
+			std::cout << "XXXXXXXXX------------" << std::endl;
+		}
+		if (i == -1) {
+			std::cout << "XXXXXXXXXX-----------" << std::endl;
+		}
+		if (i == 0) {
+			std::cout << "XXXXXXXXXXX----------" << std::endl;
+		}
+		if (i == 1) {
+			std::cout << "XXXXXXXXXXXX---------" << std::endl;
+		}
+		if (i == 2) {
+			std::cout << "XXXXXXXXXXXXX--------" << std::endl;
+		}
+		if (i == 3) {
+			std::cout << "XXXXXXXXXXXXXX-------" << std::endl;
+		}
+		if (i == 4) {
+			std::cout << "XXXXXXXXXXXXXXX------" << std::endl;
+		}
+		if (i == 5) {
+			std::cout << "XXXXXXXXXXXXXXXX-----" << std::endl;
+		}
+		if (i == 6) {
+			std::cout << "XXXXXXXXXXXXXXXXX----" << std::endl;
+		}
+		if (i == 7) {
+			std::cout << "XXXXXXXXXXXXXXXXXX---" << std::endl;
+		}
+		if (i == 8) {
+			std::cout << "XXXXXXXXXXXXXXXXXXX--" << std::endl;
+		}
+		if (i == 9) {
+			std::cout << "XXXXXXXXXXXXXXXXXXXX-" << std::endl;
+		}
+		if (i == 10) {
+			std::cout << "XXXXXXXXXXXXXXXXXXXXX" << std::endl;
+		}
 	}
-
-	//build_streamline(0, 0);
-	//build_streamline(-10, 10);
-	//build_streamline(0, 10);
-	//build_streamline(10, 10);
-	//build_streamline(-10, 0);
-	//build_streamline(10, 0);
-	//build_streamline(-10, -10);
-	//build_streamline(0, -10);
-	//build_streamline(10, -10);
 }
 
 void print_test_points() {
 	// top left
 	std::cout << "top left: (" << quadToTexture(-10, 10, 0).x << ", " << quadToTexture(-10, 10, 0).y << ")" << std::endl;
 	//std::cout << "top left: (" << patsvec[cmin][rmax][0] << ", " << patsvec[0][0][1] << ")" << std::endl;
-	
+
 	// top middle
 	std::cout << "top middle: (" << quadToTexture(0, 10, 0).x << ", " << quadToTexture(0, 10, 0).y << ")" << std::endl;
 	//std::cout << "top middle: (" << patsvec[128][0][0] << ", " << patsvec[128][0][1] << ")" << std::endl;
-	
+
 	// top right
 	std::cout << "top right: (" << quadToTexture(10, 10, 0).x << ", " << quadToTexture(10, 10, 0).y << ")" << std::endl;
 	//std::cout << "top right: (" << patsvec[255][0][0] << ", " << patsvec[255][0][1] << ")" << std::endl;
-	
+
 	// middle left
 	std::cout << "middle left: (" << quadToTexture(-10, 0, 0).x << ", " << quadToTexture(-10, 0, 0).y << ")" << std::endl;
 	//std::cout << "middle left: (" << patsvec[0][128][0] << ", " << patsvec[0][128][1] << ")" << std::endl;
-	
+
 	// middle
 	std::cout << "middle: (" << quadToTexture(0, 0, 0).x << ", " << quadToTexture(0, 0, 0).y << ")" << std::endl;
 	//std::cout << "middle: (" << patsvec[128][128][0] << ", " << patsvec[128][128][1] << ")" << std::endl;
@@ -2108,4 +2632,473 @@ void print_pixel_color_neighbors(int i, int j) {
 		<< " {" << (float)(img.r[(NPN - i) * NPN + j + 1]) << ", "
 		<< (float)(img.g[(NPN - i) * NPN + j + 1]) << ", "
 		<< (float)(img.b[(NPN - i) * NPN + j + 1]) << "}" << std::endl;
+}
+
+
+void updateFilepath(int st) {
+	fname = filepath->get_text();
+
+	streamlines_built = false;
+	display_mode = 1;
+	glutPostRedisplay();
+}
+
+// Figures out which step to be rendered based on radio button input from
+// the user interface
+void renderStep(int step) {
+	int i;
+
+	step = debug_group->get_int_val();
+
+	if (!streamlines_built) {
+		// clear out lines and points
+		lines.clear();
+		points.clear();
+	}
+
+	drawn = false;
+
+	initImage();	// Initialize image out of input file
+	initSobel();
+	imageFilter(fname);
+
+	switch (step) {
+	case 0:
+	{
+		display_mode = 7;	// Display mode for original image
+		printf("Displaying original image.\n");
+		//initImage();	// Initialize image out of input file
+		if (blur_image) {
+			initGauss(sigma);
+		}
+		imageFilter(fname);
+		glutPostRedisplay();
+	}
+	break;
+
+	case 1:  // Edge field - Sobel filter implementation
+	{
+		display_mode = 8;
+		printf("Displaying Sobel image.\n");
+		imageFilter(fname);
+		if (blur_image) {
+			initGauss(sigma);
+		}
+		sobelFilter(fname);
+		glutPostRedisplay();
+	}
+	break;
+
+	case 2:	// streamline display over original image
+	{
+		display_mode = 3;
+		if (!streamlines_built) findMinMaxField(min, max);
+		std::cout << "\nDrawing streamlines" << std::endl;
+
+		if (blur_image) {
+			initGauss(sigma);
+		}
+
+		sobelFilter(fname);
+
+		if (!streamlines_built) {
+			// make dots along x and y axes
+			draw_lines(&points, &streamlines);
+		}
+		streamlines_built = true;
+
+		glutPostRedisplay();
+	}
+	break;
+
+	case 3:	// Brush stroke display
+		display_mode = 4;
+		if (!streamlines_built) findMinMaxField(min, max);
+		std::cout << "\nDrawing brush strokes" << std::endl;
+
+		if (blur_image) {
+			initGauss(sigma);
+		}
+		sobelFilter(fname);
+
+		if (!streamlines_built) {
+			// make dots along x and y axes
+			draw_lines(&points, &streamlines);
+		}
+		streamlines_built = true;
+
+		glutPostRedisplay();
+		break;
+	}
+
+}
+
+void checkForSmoothing(int gauss) {
+	//display_mode = 7;	// Display mode for original image
+	//printf("Displaying blurred image.\n");
+	blur_image = !blur_image;
+	//imageFilter(fname);
+	//if (blur_image) { initGauss(sigma); }
+	//else { initGauss(0.); }
+	//gaussBlur(fname, 1.);
+	std::cout << "\nSmoothing Image " << blur_image << " by " << sigma << std::endl;
+	glutPostRedisplay();
+}
+
+void sigmaVal(int sig) {
+	sig = smoothing_group->get_int_val();
+
+	if (sig == 0) {
+		std::cout << "\nReverting smoothing" << std::endl;
+		blur_image = false;
+	}
+	else {
+		std::cout << "\nAdding smoothing" << std::endl;
+		blur_image = true;
+		initGauss(sig);
+	}
+
+	sobelFilter(fname);
+
+	// clear out lines and points
+	lines.clear();
+	points.clear();
+	// make dots along x and y axes
+	draw_lines(&points, &streamlines);
+	streamlines_built = true;
+
+	glutPostRedisplay();
+}
+
+void brushWidth(int b) {
+	display_mode = 4;
+	if (!streamlines_built) findMinMaxField(min, max);
+	brush_width = brush_width_list->get_int_val() / static_cast<float>(100);
+	std::cout << "\nChanging brush stroke size to " << brush_width << std::endl;
+	drawn = false;
+
+	if (blur_image) {
+		initGauss(sigma);
+	}
+	sobelFilter(fname);
+
+	if (!streamlines_built) {
+		// clear out lines and points
+		lines.clear();
+		points.clear();
+		// make dots along x and y axes
+		draw_lines(&points, &streamlines);
+	}
+	streamlines_built = true;
+
+	glutPostRedisplay();
+}
+
+void changeBrushStrokeNum(int bsp) {
+	stroke_percentage = num_strokes_list->get_int_val();
+	num_strokes = stroke_percentage * 0.01;
+	drawn = false;
+
+	display_mode = 4;
+	if (!streamlines_built) findMinMaxField(min, max);
+	std::cout << "\nChanging brush stroke concentration to " << num_strokes << std::endl;
+
+	if (blur_image) {
+		initGauss(sigma);
+	}
+	sobelFilter(fname);
+
+	// make dots along x and y axes
+	// clear out lines and points
+	lines.clear();
+	points.clear();
+	draw_lines(&points, &streamlines);
+	streamlines_built = true;
+
+	glutPostRedisplay();
+}
+
+void changeOpacity(int op) {
+	opacity_percentage = opacity_list->get_int_val();
+	opacity = opacity_percentage * 0.01;
+	drawn = false;
+
+	display_mode = 4;
+	if (!streamlines_built) findMinMaxField(min, max);
+	std::cout << "\nChanging brush stroke opacity to " << opacity_percentage << "%" << std::endl;
+
+	if (blur_image) {
+		initGauss(sigma);
+	}
+	sobelFilter(fname);
+
+	if (!streamlines_built) {
+		// clear out lines and points
+		lines.clear();
+		points.clear();
+		// make dots along x and y axes
+		draw_lines(&points, &streamlines);
+	}
+	streamlines_built = true;
+
+	glutPostRedisplay();
+}
+
+void changeStepMax(int sm) {
+	STEP_MAX = step_max_list->get_int_val();
+	drawn = false;
+
+	display_mode = 4;
+	if (!streamlines_built) findMinMaxField(min, max);
+	std::cout << "\nChanging STEP_MAX to " << STEP_MAX << std::endl;
+
+	if (blur_image) {
+		initGauss(sigma);
+	}
+	sobelFilter(fname);
+
+	//if (!streamlines_built) {
+		// clear out lines and points
+	lines.clear();
+	points.clear();
+	// make dots along x and y axes
+	draw_lines(&points, &streamlines);
+	//}
+	streamlines_built = true;
+
+	glutPostRedisplay();
+}
+
+void changeStep(int) {
+	step_int = step_list->get_int_val();
+	STEP = step_int / static_cast<double>(1000);
+	drawn = false;
+
+	display_mode = 4;
+	if (!streamlines_built) findMinMaxField(min, max);
+	std::cout << "\nChanging STEP to " << STEP << std::endl;
+
+	if (blur_image) {
+		initGauss(sigma);
+	}
+	sobelFilter(fname);
+
+	//if (!streamlines_built) {
+		// clear out lines and points
+	lines.clear();
+	points.clear();
+	// make dots along x and y axes
+	draw_lines(&points, &streamlines);
+	//}
+	streamlines_built = true;
+
+	glutPostRedisplay();
+}
+
+void renderStyles(int style) {
+	style = styles_group->get_int_val();
+	// clear out lines and points
+	lines.clear();
+	points.clear();
+	drawn = false;
+
+	switch (style) {
+	case 0:
+	{
+
+	}
+	break;
+	case 1: // Pointillistic
+	{
+		std::cout << "\nPointillistic" << std::endl;
+		brush_width = 0.25;
+		num_strokes = 0.5;
+		opacity = 0.5;
+		STEP_MAX = 1000;
+		STEP = 0.5;
+
+		display_mode = 4;
+		if (!streamlines_built) findMinMaxField(min, max);
+		std::cout << "Changing brush size to " << brush_width << std::endl;
+		std::cout << "Changing num strokes to " << num_strokes << std::endl;
+		std::cout << "Changing opacity to " << opacity << std::endl;
+		std::cout << "Changing STEP_MAX to " << STEP_MAX << std::endl;
+		std::cout << "Changing STEP to " << STEP << std::endl;
+
+		if (blur_image) {
+			initGauss(sigma);
+		}
+		sobelFilter(fname);
+
+		// clear out lines and points
+		lines.clear();
+		points.clear();
+		// make dots along x and y axes
+		draw_lines(&points, &streamlines);
+		streamlines_built = true;
+
+		glutPostRedisplay();
+	}
+	break;
+	case 2: // Impressionistic
+	{
+		std::cout << "\nImpressionistic" << std::endl;
+		brush_width = 0.25;
+		num_strokes = 0.5;
+		opacity = 0.25;
+		STEP_MAX = 750;
+		STEP = 0.1;
+
+		display_mode = 4;
+		if (!streamlines_built) findMinMaxField(min, max);
+		std::cout << "Changing brush size to " << brush_width << std::endl;
+		std::cout << "Changing num strokes to " << num_strokes << std::endl;
+		std::cout << "Changing opacity to " << opacity << std::endl;
+		std::cout << "Changing STEP_MAX to " << STEP_MAX << std::endl;
+		std::cout << "Changing STEP to " << STEP << std::endl;
+
+		if (blur_image) {
+			initGauss(sigma);
+		}
+		sobelFilter(fname);
+
+		// clear out lines and points
+		lines.clear();
+		points.clear();
+		// make dots along x and y axes
+		draw_lines(&points, &streamlines);
+		streamlines_built = true;
+
+		glutPostRedisplay();
+	}
+	break;
+	case 3: // Watercolor
+	{
+		std::cout << "\nWatercolor" << std::endl;
+		brush_width = 1.25;
+		num_strokes = 2.;
+		opacity = 0.25;
+		STEP_MAX = 500;
+		STEP = 0.5;
+		brightness = 0.;
+
+		display_mode = 4;
+		if (!streamlines_built) findMinMaxField(min, max);
+		std::cout << "Changing brush size to " << brush_width << std::endl;
+		std::cout << "Changing num strokes to " << num_strokes << std::endl;
+		std::cout << "Changing opacity to " << opacity << std::endl;
+		std::cout << "Changing STEP_MAX to " << STEP_MAX << std::endl;
+		std::cout << "Changing STEP to " << STEP << std::endl;
+		std::cout << "Changing brightness to " << brightness << std::endl;
+
+		if (blur_image) {
+			initGauss(sigma);
+		}
+		sobelFilter(fname);
+		// clear out lines and points
+		lines.clear();
+		points.clear();
+		// make dots along x and y axes
+		draw_lines(&points, &streamlines);
+		streamlines_built = true;
+
+		glutPostRedisplay();
+	}
+	break;
+	case 4: // Expressionalistic
+	{
+		std::cout << "\nExpressionalistic" << std::endl;
+		brush_width = 0.33;
+		num_strokes = 0.5;
+		opacity = 0.5;
+		STEP_MAX = 750;
+		STEP = 0.1;
+		brightness = -0.3;
+
+		display_mode = 4;
+		if (!streamlines_built) findMinMaxField(min, max);
+		std::cout << "Changing brush size to " << brush_width << std::endl;
+		std::cout << "Changing num strokes to " << num_strokes << std::endl;
+		std::cout << "Changing opacity to " << opacity << std::endl;
+		std::cout << "Changing STEP_MAX to " << STEP_MAX << std::endl;
+		std::cout << "Changing STEP to " << STEP << std::endl;
+		std::cout << "Changing brightness to " << brightness << std::endl;
+
+		if (blur_image) {
+			initGauss(sigma);
+		}
+		sobelFilter(fname);
+		// clear out lines and points
+		lines.clear();
+		points.clear();
+		// make dots along x and y axes
+		draw_lines(&points, &streamlines);
+		streamlines_built = true;
+
+		glutPostRedisplay();
+	}
+	break;
+	}
+}
+
+void changeBrightness(int br) {
+	br = brightness_list->get_int_val();
+	brightness = -br / 100.;
+	display_mode = 4;
+	if (!streamlines_built) findMinMaxField(min, max);
+	std::cout << "\nChanging brightness to " << brightness << std::endl;
+
+	if (blur_image) {
+		initGauss(sigma);
+	}
+	sobelFilter(fname);
+
+	if (!streamlines_built) {
+		// clear out lines and points
+		lines.clear();
+		points.clear();
+		// make dots along x and y axes
+		draw_lines(&points, &streamlines);
+	}
+	streamlines_built = true;
+
+	glutPostRedisplay();
+}
+
+void updateJitter(int j) {
+	j = jittering_list->get_int_val();
+	color_jitter = j / static_cast<double>(10);
+	std::cout << "\nChanging color jitter to " << color_jitter << std::endl;
+	jitter = -color_jitter + static_cast<float>(rand()) * static_cast<float>(color_jitter + color_jitter) / RAND_MAX;
+}
+
+void jitterVal(int j) {
+	j = jittering_group->get_int_val();
+	if (j == 0) {
+		std::cout << "\nChanging color jitter to none" << std::endl;
+		animate = false;
+	}
+	else if (j == 1) {
+		std::cout << "\nChanging color jitter to red" << std::endl;
+		animate = true;
+		animate_r = true;
+		animate_g = false;
+		animate_b = false;
+	}
+	else if (j == 2) {
+		std::cout << "\nChanging color jitter to green" << std::endl;
+		animate = true;
+		animate_r = false;
+		animate_g = true;
+		animate_b = false;
+	}
+	else if (j == 3) {
+		std::cout << "\nChanging color jitter to blue" << std::endl;
+		animate = true;
+		animate_r = false;
+		animate_g = false;
+		animate_b = true;
+	}
+
+	glutPostRedisplay();
 }
