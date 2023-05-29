@@ -8,7 +8,7 @@ We present a tool that converts any image into a painterly rendered one, or one 
 
 The final rendering of the image-- particularly the direction and quantity of the brushstrokes-- is based on the computed edge field of the original image. This is done through edge detection, more specifically using the Sobel filter. The Sobel filter takes an image as input and creates a new image with emphasized edges. The image is then convolved with the Sobel kernels in both the horizontal and vertical directions. In terms of image processing,convultion refers to a 3x3 matrix of surrounding pixels, which are used to compare the change of intensity in the selected pixel in any given direction. This intensity change is used to compute the gradient vector for that pixel, which points in the direction of the greatest change in intensity.The figure below demonstrates how the edges of an original image are extracted and displayed on a black background:
 
-<img src="Results/vader.JPG" width="500"> <img src="Results/G28.JPG" width="500">
+<img src="Results/vader.jpg" width="500"> <img src="Results/G28.JPG" width="500">
 
 ## Streamline Creation
 
@@ -30,7 +30,7 @@ Within the context of this application, stylization of brush strokes refers but 
 
 Brush strokes are applied by drawing discs at each step of the calculated streamline. The collective rendering of discs for a single streamline dictates a single brush stroke; however, there is also the option of drawing the discs sufficiently far apart such that the discs are implemented as their own brush strokes. This can be particularly effective in watercolor images (seen below), where the brush strokes tend to be more blotted. Our final brush stroke style is determined by either the provided user input or the default values. Regardless of the stylization applied to the brush strokes, the final brush strokes are rendered over the original image. This allows more transparent brush strokes to maintain a finer level of detail by blending the brush stroke with the original image underneath.
 
-<img src="Results/hawaii.JPG" width="500"> <img src="Results/I33_2.JPG" width="500">
+<img src="Results/hawaii.jpg" width="500"> <img src="Results/I33_2.JPG" width="500">
 
 ## For more information, you can find my thesis paper under the directory `ThesisPaper`.
 
